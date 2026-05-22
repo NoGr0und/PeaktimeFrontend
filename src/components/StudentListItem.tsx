@@ -1,6 +1,6 @@
 import React from 'react';
 import { YStack, XStack, Text, Button as TButton } from 'tamagui';
-import { Mail, ChevronRight } from '@tamagui/lucide-icons';
+import { Mail, ChevronRight } from '@tamagui/lucide-icons-2';
 import { Card } from './ui/Card';
 import { Enrollment } from '@/types/enrollment';
 

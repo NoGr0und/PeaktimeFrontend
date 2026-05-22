@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clipboard, Platform } from 'react-native';
 import { YStack, XStack, Text, Button as TButton } from 'tamagui';
-import { Copy, Check, RefreshCw } from '@tamagui/lucide-icons';
+import { Copy, Check, RefreshCw } from '@tamagui/lucide-icons-2';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { InviteCode } from '@/types/enrollment';

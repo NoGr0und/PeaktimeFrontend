@@ -128,9 +128,9 @@
 
 **Purpose**: Sincronização de tokens de notificações push para alunos e professores.
 
-- [ ] T028a [P] [US1] Create settings and push notification types in src/types/settings.ts
-- [ ] T028b [US1] Implement settings custom hook containing register push token logic in src/hooks/use-settings.ts
-- [ ] T028c [US1] Integrate push notifications permissions check, token acquisition, and registry inside app root layout src/app/_layout.tsx
+- [x] T028a [P] [US1] Create settings and push notification types in src/types/settings.ts
+- [x] T028b [US1] Implement settings custom hook containing register push token logic in src/hooks/use-settings.ts
+- [x] T028c [US1] Integrate push notifications permissions check, token acquisition, and registry inside app root layout src/app/_layout.tsx
 
 **Checkpoint**: Registro de push tokens totalmente operacional após autenticação de usuários.
 
@@ -140,9 +140,9 @@
 
 **Purpose**: Ajustes de navegação estrutural, layout final, acessibilidade e validação geral.
 
-- [ ] T029 Configure student navigation tabs layout in src/app/(student)/_layout.tsx
-- [ ] T030 Configure professor navigation tabs layout in src/app/(professor)/_layout.tsx
-- [ ] T030a [US1] Add basic SEO metadata inside routes utilizing the Expo Router Head component (Principle V)
+- [x] T029 Configure student navigation tabs layout in src/app/(student)/_layout.tsx
+- [x] T030 Configure professor navigation tabs layout in src/app/(professor)/_layout.tsx
+- [x] T030a [US1] Add basic SEO metadata inside routes utilizing the Expo Router Head component (Principle V)
 - [x] T031 Run validation build, check accessibility properties (accessibilityLabel/accessibilityRole), and run TypeScript compilation checks across the app
 
 ---

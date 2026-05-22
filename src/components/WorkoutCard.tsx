@@ -1,6 +1,6 @@
 import React from 'react';
 import { YStack, Text, XStack } from 'tamagui';
-import { Dumbbell } from '@tamagui/lucide-icons';
+import { Dumbbell } from '@tamagui/lucide-icons-2';
 import { DayPlan } from '@/types/workout';
 import { ExerciseRow } from './ExerciseRow';
 import { Card } from './ui/Card';

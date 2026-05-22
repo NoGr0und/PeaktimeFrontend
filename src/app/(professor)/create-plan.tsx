@@ -3,7 +3,8 @@ import { StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-na
 import { YStack, XStack, Text, H2, H3, View, Spinner } from 'tamagui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Trash2, Plus, Save, Dumbbell, Calendar, Info, AlertCircle } from '@tamagui/lucide-icons';
+import Head from 'expo-router/head';
+import { ChevronLeft, Trash2, Plus, Save, Dumbbell, Calendar, Info, AlertCircle } from '@tamagui/lucide-icons-2';
 
 import { useEnrollment } from '@/hooks/use-enrollment';
 import { useWorkouts } from '@/hooks/use-workouts';
@@ -230,11 +231,16 @@ export default function CreatePlanScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
+    <>
+      <Head>
+        <title>Criar Plano Semanal - Peaktime</title>
+        <meta name="description" content="Monte e edite treinos semanais para seus alunos no Peaktime." />
+      </Head>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
         {/* Top Navigation Header */}
         <XStack
           paddingHorizontal="$four"
@@ -573,6 +579,7 @@ export default function CreatePlanScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </>
   );
 }
 

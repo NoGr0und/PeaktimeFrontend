@@ -7,7 +7,8 @@ import { useEnrollment } from '@/hooks/use-enrollment';
 import { InviteCodeDisplay } from '@/components/InviteCodeDisplay';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { LogOut } from '@tamagui/lucide-icons';
+import { LogOut } from '@tamagui/lucide-icons-2';
+import Head from 'expo-router/head';
 
 export default function ProfessorProfile() {
   const { user, logout } = useAuth();
@@ -24,10 +25,15 @@ export default function ProfessorProfile() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <YStack gap="$four" padding="$four" width="100%">
-          <H2 color="$color" fontWeight="bold">Perfil</H2>
+    <>
+      <Head>
+        <title>Meu Perfil - Professor - Peaktime</title>
+        <meta name="description" content="Gerencie seu perfil de professor e código de convite no Peaktime." />
+      </Head>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <YStack gap="$four" padding="$four" width="100%">
+            <H2 color="$color" fontWeight="bold">Perfil</H2>
 
           {/* Profile Details Card */}
           <Card variant="flat" padding="$four" gap="$three">
@@ -86,6 +92,7 @@ export default function ProfessorProfile() {
         </YStack>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 

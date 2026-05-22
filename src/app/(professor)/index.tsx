@@ -3,12 +3,13 @@ import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { YStack, XStack, Text, H2, Spinner } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useAuth } from '@/hooks/use-auth';
 import { useEnrollment } from '@/hooks/use-enrollment';
 import { StudentListItem } from '@/components/StudentListItem';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Users, Plus, AlertCircle } from '@tamagui/lucide-icons';
+import { Users, Plus, AlertCircle } from '@tamagui/lucide-icons-2';
 
 export default function ProfessorDashboard() {
   const { user } = useAuth();
@@ -31,7 +32,12 @@ export default function ProfessorDashboard() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <Head>
+        <title>Painel do Professor - Peaktime</title>
+        <meta name="description" content="Gerencie seus alunos, envie convites e prescreva treinos semanais no Peaktime." />
+      </Head>
+      <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -115,6 +121,7 @@ export default function ProfessorDashboard() {
         </YStack>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 

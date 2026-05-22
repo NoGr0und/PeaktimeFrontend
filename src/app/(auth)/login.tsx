@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { YStack, XStack, Text, H1 } from 'tamagui';
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { SymbolView } from 'expo-symbols';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,7 +42,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
+    <>
+      <Head>
+        <title>Acesse sua Conta - Peaktime</title>
+        <meta name="description" content="Faça login no Peaktime para acompanhar seus treinos e dieta personalizados." />
+      </Head>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -184,6 +190,7 @@ export default function LoginScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </>
   );
 }
 

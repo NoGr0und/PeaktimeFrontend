@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
 import { YStack, XStack, Text, H1, View } from 'tamagui';
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { SymbolView } from 'expo-symbols';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -121,7 +122,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
+    <>
+      <Head>
+        <title>Criar Nova Conta - Peaktime</title>
+        <meta name="description" content="Cadastre-se no Peaktime como Aluno ou Professor para gerenciar treinos e nutrição." />
+      </Head>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -358,6 +364,7 @@ export default function RegisterScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </>
   );
 }
 

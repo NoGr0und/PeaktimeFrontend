@@ -3,12 +3,13 @@ import { StyleSheet, ScrollView } from 'react-native';
 import { YStack, XStack, Text, H2, AnimatePresence } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import Head from 'expo-router/head';
 import { useAuth } from '@/hooks/use-auth';
 import { useEnrollment } from '@/hooks/use-enrollment';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { LogOut, Link2, CheckCircle2, AlertCircle } from '@tamagui/lucide-icons';
+import { LogOut, Link2, CheckCircle2, AlertCircle } from '@tamagui/lucide-icons-2';
 
 export default function StudentProfile() {
   const { user, logout } = useAuth();
@@ -51,7 +52,12 @@ export default function StudentProfile() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <Head>
+        <title>Meu Perfil - Peaktime</title>
+        <meta name="description" content="Gerencie seu perfil de aluno no Peaktime e associe-se ao seu professor." />
+      </Head>
+      <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <YStack gap="$four" padding="$four" width="100%">
           <H2 color="$color" fontWeight="bold">Perfil</H2>
@@ -193,6 +199,7 @@ export default function StudentProfile() {
         </YStack>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 

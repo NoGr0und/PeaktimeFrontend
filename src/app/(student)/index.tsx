@@ -3,7 +3,8 @@ import { StyleSheet, ScrollView } from 'react-native';
 import { YStack, XStack, Text, Spinner, Card as TCard } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { CheckCircle2, Award, Moon, RefreshCw, AlertTriangle } from '@tamagui/lucide-icons';
+import Head from 'expo-router/head';
+import { CheckCircle2, Award, Moon, RefreshCw, AlertTriangle } from '@tamagui/lucide-icons-2';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useWorkouts } from '@/hooks/use-workouts';
@@ -158,7 +159,12 @@ export default function StudentDashboard() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <>
+      <Head>
+        <title>Treino de Hoje - Peaktime</title>
+        <meta name="description" content="Visualize seu cronograma de exercícios diários e registre suas conclusões no Peaktime." />
+      </Head>
+      <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <YStack gap="$four" padding="$four" width="100%" maxWidth={800} alignSelf="center">
           {/* Header Greeting */}
@@ -175,6 +181,7 @@ export default function StudentDashboard() {
         </YStack>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   getUserRole,
   setItem,
   getItem,
+  removeItem,
 } from '@/services/storage';
 import { User, UserRole, LoginResponse, RegisterResponse } from '@/types/auth';
 
@@ -81,28 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token && cachedUser) {
           setUser(JSON.parse(cachedUser));
         } else if (token) {
-          // If we have token but no cached user details, decode token to rebuild profile
-          const decoded = decodeJWT(token);
-          if (decoded) {
-            const role =
-              decoded.role ||
-              decoded.user_metadata?.role ||
-              decoded.app_metadata?.role ||
-              (await getUserRole()) ||
-              'ALUNO';
-            const name =
-              decoded.name || decoded.user_metadata?.name || decoded.email?.split('@')[0] || 'Usuário';
-            const email = decoded.email || '';
-            const id = decoded.sub || '';
-            const resolvedUser: User = {
-              id,
-              name,
-              email,
-              role: role as UserRole,
-              birthDate: decoded.user_metadata?.birthDate || '',
-            };
+          // If we have token but no cached user details, fetch from API /me
+          try {
+            const resolvedUser = await api.get<User>('/api/auth/me');
             setUser(resolvedUser);
             await setItem('peaktime_user', JSON.stringify(resolvedUser));
+          } catch (meError) {
+            console.error('Failed to fetch user profile using saved token', meError);
+            await clearSession();
+            setUser(null);
           }
         }
       } catch (e) {
@@ -117,28 +105,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post<LoginResponse>('/api/auth/login', { email, password });
-      const { access_token, refresh_token } = response;
+      const { access_token, refresh_token, user: loggedUser } = response;
 
-      // Decode the access token to read user details
-      const decoded = decodeJWT(access_token);
-      if (!decoded) {
-        throw new Error('Token JWT recebido é inválido');
-      }
-
-      const role =
-        decoded.role || decoded.user_metadata?.role || decoded.app_metadata?.role || 'ALUNO';
-      const name =
-        decoded.name || decoded.user_metadata?.name || decoded.email?.split('@')[0] || 'Usuário';
-
-      const loggedUser: User = {
-        id: decoded.sub || '',
-        name,
-        email: decoded.email || email,
-        role: role as UserRole,
-        birthDate: decoded.user_metadata?.birthDate || '',
-      };
-
-      await saveSession(access_token, refresh_token, role);
+      await saveSession(access_token, refresh_token, loggedUser.role);
       await setItem('peaktime_user', JSON.stringify(loggedUser));
       setUser(loggedUser);
     } catch (e) {
@@ -185,12 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Helper inside logout scope to handle storage cleanup
-  async function removeItem(key: string) {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(key);
-    }
-  }
+
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
