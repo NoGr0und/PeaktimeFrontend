@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: Nenhuma tela ou hook de história de usuário pode ser implementado antes da conclusão desta fase.
 
-- [ ] T003 Implement token secure storage helper in src/services/storage.ts
-- [ ] T004 Implement HTTP Fetch API client with automatic JWT authorization injection in src/services/api.ts
+- [x] T003 Implement token secure storage helper in src/services/storage.ts
+- [x] T004 Implement HTTP Fetch API client with automatic JWT authorization injection in src/services/api.ts
 
 **Checkpoint**: Foundation ready - a implementação das histórias de usuário pode iniciar em paralelo.
 
