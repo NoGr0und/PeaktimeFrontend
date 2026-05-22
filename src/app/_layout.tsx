@@ -1,13 +1,54 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme, View, StyleSheet, Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { DarkTheme, DefaultTheme, ThemeProvider, Slot, useRouter, useSegments } from 'expo-router';
+import { useColorScheme, View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { TamaguiProvider } from 'tamagui';
 import config from '@/tamagui.config';
 import { Colors, MaxContentWidth } from '@/constants/theme';
-
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
 
-export default function TabLayout() {
+function RootNavigation() {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments() as string[];
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!user) {
+      // Redirect to login if not in auth group
+      if (!inAuthGroup) {
+        router.replace('/(auth)/login' as any);
+      }
+    } else {
+      // User is authenticated
+      const role = user.role;
+      if (role === 'ALUNO') {
+        if (segments[0] !== '(student)') {
+          router.replace('/(student)' as any);
+        }
+      } else if (role === 'PROFESSOR') {
+        if (segments[0] !== '(professor)') {
+          router.replace('/(professor)' as any);
+        }
+      }
+    }
+  }, [user, isLoading, segments, router]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
+
+  return <Slot />;
+}
+
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const themeColors = Colors[theme];
@@ -15,29 +56,32 @@ export default function TabLayout() {
   const content = (
     <>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <RootNavigation />
     </>
   );
 
   return (
     <TamaguiProvider config={config} defaultTheme={theme}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {Platform.OS === 'web' ? (
-          <View style={[styles.webContainer, { backgroundColor: themeColors.backgroundElement }]}>
-            <View
-              style={[
-                styles.webContent,
-                {
-                  backgroundColor: themeColors.background,
-                  borderColor: themeColors.backgroundSelected,
-                },
-              ]}>
-              {content}
+        <AuthProvider>
+          {Platform.OS === 'web' ? (
+            <View style={[styles.webContainer, { backgroundColor: themeColors.backgroundElement }]}>
+              <View
+                style={[
+                  styles.webContent,
+                  {
+                    backgroundColor: themeColors.background,
+                    borderColor: themeColors.backgroundSelected,
+                  },
+                ]}
+              >
+                {content}
+              </View>
             </View>
-          </View>
-        ) : (
-          content
-        )}
+          ) : (
+            content
+          )}
+        </AuthProvider>
       </ThemeProvider>
     </TamaguiProvider>
   );
@@ -60,5 +104,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
-

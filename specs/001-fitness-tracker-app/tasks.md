@@ -83,11 +83,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [P] [US3] Create workout types in src/types/workout.ts
-- [ ] T020 [US3] Implement workouts hooks (fetching today, completing log) in src/hooks/use-workouts.ts
-- [ ] T021 [P] [US3] Implement ExerciseRow component in src/components/ExerciseRow.tsx
-- [ ] T022 [P] [US3] Implement WorkoutCard component in src/components/WorkoutCard.tsx
-- [ ] T023 [US3] Build student workout today homepage in src/app/(student)/index.tsx, ensuring the empty state "Nenhum treino planejado para hoje. Aproveite para descansar!" is handled when no workout exists.
+- [x] T019 [P] [US3] Create workout types in src/types/workout.ts
+- [x] T020 [US3] Implement workouts hooks (fetching today, completing log) in src/hooks/use-workouts.ts
+- [x] T021 [P] [US3] Implement ExerciseRow component in src/components/ExerciseRow.tsx
+- [x] T022 [P] [US3] Implement WorkoutCard component in src/components/WorkoutCard.tsx
+- [x] T023 [US3] Build student workout today homepage in src/app/(student)/index.tsx, ensuring the empty state "Nenhum treino planejado para hoje. Aproveite para descansar!" is handled when no workout exists.
 
 **Checkpoint**: Aluno consegue ver o treino diário planejado e registrar a finalização.
 
@@ -101,7 +101,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Build create weekly workout plan screen in src/app/(professor)/create-plan.tsx
+- [x] T024 [US4] Build create weekly workout plan screen in src/app/(professor)/create-plan.tsx
 
 **Checkpoint**: Planos de treinos podem ser criados, atualizados e atribuídos aos alunos.
 
@@ -143,7 +143,7 @@
 - [ ] T029 Configure student navigation tabs layout in src/app/(student)/_layout.tsx
 - [ ] T030 Configure professor navigation tabs layout in src/app/(professor)/_layout.tsx
 - [ ] T030a [US1] Add basic SEO metadata inside routes utilizing the Expo Router Head component (Principle V)
-- [ ] T031 Run validation build, check accessibility properties (accessibilityLabel/accessibilityRole), and run TypeScript compilation checks across the app
+- [x] T031 Run validation build, check accessibility properties (accessibilityLabel/accessibilityRole), and run TypeScript compilation checks across the app
 
 ---
 
