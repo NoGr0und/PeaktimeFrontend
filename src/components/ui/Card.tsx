@@ -3,16 +3,16 @@ import { YStack, styled } from 'tamagui';
 export const Card = styled(YStack, {
   name: 'CustomCard',
   backgroundColor: '$background',
-  borderRadius: '$radius.two',
+  borderRadius: '$radius.three',
   padding: '$four',
   borderWidth: 1,
   borderColor: '$backgroundSelected',
   
   // Subtle premium drop-shadow for iOS/Android/Web
-  shadowColor: '#0052cc',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.05,
-  shadowRadius: 12,
+  shadowColor: '#0f172a',
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.03,
+  shadowRadius: 16,
   elevation: 2,
 
   variants: {
@@ -25,8 +25,8 @@ export const Card = styled(YStack, {
       },
       elevated: {
         borderWidth: 0,
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
         elevation: 4,
       },
       outlined: {

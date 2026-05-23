@@ -309,43 +309,95 @@ export default function NutritionScreen() {
               />
             </XStack>
           </Card>
-
           {/* Calorie & Macronutrient Summary Dashboard Card */}
-          <Card variant="elevated" padding="$four" backgroundColor="$background" gap="$three">
-            <Text fontSize={15} fontWeight="700" color="$color">
-              Resumo Diário
-            </Text>
-
-            {/* Calories Progress Gauge */}
-            <YStack gap="$two">
-              <XStack justifyContent="space-between" alignItems="baseline">
-                <Text fontSize={13} color="$textSecondary">Calorias</Text>
-                <XStack alignItems="baseline" gap="$one">
-                  <Text fontSize={20} fontWeight="bold" color="$primary">
-                    {consumedTotals.calories}
-                  </Text>
-                  <Text fontSize={12} color="$textSecondary">
-                    / {TARGET_CALORIES} kcal
-                  </Text>
-                </XStack>
-              </XStack>
-              {/* Calories Progress Bar */}
-              <XStack height={8} borderRadius={4} backgroundColor="$backgroundSelected" overflow="hidden">
-                <XStack
-                  height="100%"
-                  backgroundColor="$primary"
-                  width={`${Math.min(100, (consumedTotals.calories / TARGET_CALORIES) * 100)}%`}
-                />
-              </XStack>
+          <Card variant="elevated" padding="$four" backgroundColor="$background" gap="$four">
+            <YStack gap="$half">
+              <Text fontSize={15} fontWeight="800" color="$color">
+                Resumo Nutricional
+              </Text>
+              <Text fontSize={12} color="$textSecondary" fontWeight="500">
+                Acompanhamento diário de energia e macros
+              </Text>
             </YStack>
 
-            {/* Macronutrient Breakdowns */}
-            <XStack gap="$three" justifyContent="space-between" marginTop="$two">
+            <XStack gap="$four" alignItems="center" justifyContent="space-between" flexWrap="wrap">
+              {/* Left Side: Circular Calorie Indicator */}
+              <XStack alignItems="center" gap="$three">
+                <YStack
+                  width={96}
+                  height={96}
+                  borderRadius={48}
+                  backgroundColor="$primaryLight"
+                  justifyContent="center"
+                  alignItems="center"
+                  shadowColor="#0f172a"
+                  shadowOffset={{ width: 0, height: 4 }}
+                  shadowOpacity={0.03}
+                  shadowRadius={8}
+                  elevation={1}
+                >
+                  <YStack
+                    width={80}
+                    height={80}
+                    borderRadius={40}
+                    backgroundColor="$background"
+                    justifyContent="center"
+                    alignItems="center"
+                  >
+                    <Text fontSize={18} fontWeight="800" color="$color">
+                      {consumedTotals.calories}
+                    </Text>
+                    <Text fontSize={11} color="$textSecondary" fontWeight="600" textTransform="uppercase" letterSpacing={0.5}>
+                      kcal
+                    </Text>
+                  </YStack>
+                </YStack>
+
+                <YStack gap="$one">
+                  <Text fontSize={11} fontWeight="800" color="$textSecondary" textTransform="uppercase" letterSpacing={0.5}>
+                    Consumido
+                  </Text>
+                  <Text fontSize={18} fontWeight="800" color="$primary">
+                    {consumedTotals.calories} kcal
+                  </Text>
+                  <XStack alignItems="center" gap="$one">
+                    <Text fontSize={12} color="$textSecondary" fontWeight="600">
+                      Meta: {TARGET_CALORIES} kcal
+                    </Text>
+                  </XStack>
+                </YStack>
+              </XStack>
+
+              {/* Right Side: Remaining Calorie Status Pill */}
+              <YStack alignItems="flex-end" justifyContent="center">
+                <Text fontSize={11} fontWeight="800" color="$textSecondary" textTransform="uppercase" letterSpacing={0.5} marginBottom="$one">
+                  Restante
+                </Text>
+                <XStack
+                  backgroundColor={consumedTotals.calories > TARGET_CALORIES ? '#fff2f0' : '$primaryLight'}
+                  paddingHorizontal="$three"
+                  paddingVertical="$two"
+                  borderRadius="$radius.two"
+                  alignItems="center"
+                  gap="$two"
+                >
+                  <Text fontSize={16} fontWeight="800" color={consumedTotals.calories > TARGET_CALORIES ? '#ff4d4f' : '$primary'}>
+                    {Math.max(0, TARGET_CALORIES - consumedTotals.calories)}
+                  </Text>
+                  <Text fontSize={11} fontWeight="700" color={consumedTotals.calories > TARGET_CALORIES ? '#ff4d4f' : '$primary'}>
+                    kcal
+                  </Text>
+                </XStack>
+              </YStack>
+            </XStack>
+
+            {/* Macro Details Row */}
+            <XStack gap="$three" justifyContent="space-between" borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$three" marginTop="$one">
               {/* Carb */}
               <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between">
-                  <Text fontSize={11} color="$textSecondary">Carboidratos</Text>
-                  <Text fontSize={11} fontWeight="bold" color="$color">
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Carbos</Text>
+                  <Text fontSize={11} fontWeight="800" color="$color">
                     {consumedTotals.carbs}g/{TARGET_CARBS}g
                   </Text>
                 </XStack>
@@ -360,9 +412,9 @@ export default function NutritionScreen() {
 
               {/* Protein */}
               <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between">
-                  <Text fontSize={11} color="$textSecondary">Proteínas</Text>
-                  <Text fontSize={11} fontWeight="bold" color="$color">
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Proteínas</Text>
+                  <Text fontSize={11} fontWeight="800" color="$color">
                     {consumedTotals.protein}g/{TARGET_PROTEIN}g
                   </Text>
                 </XStack>
@@ -377,9 +429,9 @@ export default function NutritionScreen() {
 
               {/* Fat */}
               <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between">
-                  <Text fontSize={11} color="$textSecondary">Gorduras</Text>
-                  <Text fontSize={11} fontWeight="bold" color="$color">
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Gorduras</Text>
+                  <Text fontSize={11} fontWeight="800" color="$color">
                     {consumedTotals.fat}g/{TARGET_FAT}g
                   </Text>
                 </XStack>
@@ -393,7 +445,6 @@ export default function NutritionScreen() {
               </YStack>
             </XStack>
           </Card>
-
           {/* Meals List grouped by Category */}
           <YStack gap="$three">
             <Text fontSize={16} fontWeight="bold" color="$color">

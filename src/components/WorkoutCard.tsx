@@ -27,29 +27,31 @@ export function WorkoutCard({ dayPlan }: WorkoutCardProps) {
     <YStack gap="$three" width="100%">
       {/* Header Info */}
       <Card 
-        variant="flat" 
-        backgroundColor="$primary" 
+        variant="elevated" 
+        backgroundColor="$background" 
         padding="$four" 
         width="100%"
+        borderLeftWidth={4}
+        borderLeftColor="$primary"
         accessibilityLabel={`Treino de hoje, ${dayLabel}: ${dayPlan.name}`}
         accessibilityRole="summary"
       >
         <XStack gap="$three" alignItems="center">
           <XStack
-            width={40}
-            height={40}
-            borderRadius={20}
-            backgroundColor="rgba(255, 255, 255, 0.2)"
+            width={44}
+            height={44}
+            borderRadius={22}
+            backgroundColor="$primaryLight"
             justifyContent="center"
             alignItems="center"
           >
-            <Dumbbell size={20} color="#ffffff" />
+            <Dumbbell size={22} color="#0252e3" />
           </XStack>
           <YStack flex={1}>
-            <Text color="#ffffff" fontSize={14} fontWeight="bold" opacity={0.8} textTransform="uppercase">
-              {dayLabel}
+            <Text color="$primary" fontSize={12} fontWeight="bold" textTransform="uppercase" letterSpacing={0.5}>
+              {dayLabel} • FOCO DE HOJE
             </Text>
-            <Text color="#ffffff" fontSize={20} fontWeight="bold">
+            <Text color="$color" fontSize={18} fontWeight="800" marginTop="$half">
               {dayPlan.name}
             </Text>
           </YStack>

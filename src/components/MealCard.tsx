@@ -39,25 +39,25 @@ export function MealCard({ meal, onDelete, isDeleting }: MealCardProps) {
   const totalFat = meal.items.reduce((sum, item) => sum + (item.fat || 0), 0);
 
   return (
-    <Card variant="flat" padding="$four" backgroundColor="$background" marginBottom="$four" width="100%">
+    <Card variant="elevated" padding="$four" backgroundColor="$background" marginBottom="$four" width="100%">
       {/* Header */}
-      <XStack justifyContent="space-between" alignItems="center" borderBottomWidth={1} borderColor="$backgroundSelected" paddingBottom="$two" marginBottom="$two">
-        <XStack gap="$two" alignItems="center">
+      <XStack justifyContent="space-between" alignItems="center" borderBottomWidth={1} borderColor="$backgroundSelected" paddingBottom="$three" marginBottom="$three">
+        <XStack gap="$three" alignItems="center">
           <XStack
-            width={36}
-            height={36}
-            borderRadius={18}
+            width={40}
+            height={40}
+            borderRadius={20}
             backgroundColor="$primaryLight"
             justifyContent="center"
             alignItems="center"
           >
             {meta.icon}
           </XStack>
-          <YStack>
-            <Text fontSize={16} fontWeight="bold" color="$color">
+          <YStack gap="$half">
+            <Text fontSize={15} fontWeight="800" color="$color">
               {meta.label}
             </Text>
-            <Text fontSize={11} color="$textSecondary">
+            <Text fontSize={12} color="$textSecondary" fontWeight="500">
               {new Date(meal.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </YStack>
@@ -77,19 +77,19 @@ export function MealCard({ meal, onDelete, isDeleting }: MealCardProps) {
       </XStack>
 
       {/* Items List */}
-      <YStack gap="$two" marginVertical="$two">
+      <YStack gap="$three" marginVertical="$two">
         {meal.items.map((item, idx) => (
           <XStack key={item.id || idx} justifyContent="space-between" alignItems="center">
-            <YStack flex={1}>
-              <Text fontSize={14} fontWeight="600" color="$color">
+            <YStack flex={1} gap="$half">
+              <Text fontSize={14} fontWeight="700" color="$color">
                 {item.name}
               </Text>
-              <Text fontSize={12} color="$textSecondary">
+              <Text fontSize={11} color="$textSecondary" fontWeight="600">
                 {item.quantity} {item.unit}
               </Text>
             </YStack>
-            <XStack gap="$two" alignItems="center">
-              <Text fontSize={13} fontWeight="bold" color="$color">
+            <XStack gap="$two" alignItems="center" backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+              <Text fontSize={12} fontWeight="800" color="$color">
                 {Math.round(item.calories || 0)} kcal
               </Text>
             </XStack>
@@ -98,26 +98,32 @@ export function MealCard({ meal, onDelete, isDeleting }: MealCardProps) {
       </YStack>
 
       {/* Footer / Summary Row */}
-      <YStack borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$two" marginTop="$two" gap="$one">
+      <YStack borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$three" marginTop="$three" gap="$three">
         <XStack justifyContent="space-between" alignItems="center">
-          <Text fontSize={13} fontWeight="700" color="$color">
+          <Text fontSize={13} fontWeight="800" color="$color">
             Total da Refeição
           </Text>
-          <Text fontSize={14} fontWeight="800" color="$primary">
+          <Text fontSize={16} fontWeight="800" color="$primary">
             {Math.round(totalCalories)} kcal
           </Text>
         </XStack>
         
-        <XStack gap="$three" flexWrap="wrap" marginTop="$half">
-          <Text fontSize={11} color="$textSecondary">
-            Carb: <Text fontWeight="600" color="$color">{Math.round(totalCarbs)}g</Text>
-          </Text>
-          <Text fontSize={11} color="$textSecondary">
-            Prot: <Text fontWeight="600" color="$color">{Math.round(totalProtein)}g</Text>
-          </Text>
-          <Text fontSize={11} color="$textSecondary">
-            Gord: <Text fontWeight="600" color="$color">{Math.round(totalFat)}g</Text>
-          </Text>
+        <XStack gap="$two" flexWrap="wrap" marginTop="$half">
+          <XStack backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+            <Text fontSize={11} color="$textSecondary" fontWeight="600">
+              Carb: <Text fontWeight="800" color="$color">{Math.round(totalCarbs)}g</Text>
+            </Text>
+          </XStack>
+          <XStack backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+            <Text fontSize={11} color="$textSecondary" fontWeight="600">
+              Prot: <Text fontWeight="800" color="$color">{Math.round(totalProtein)}g</Text>
+            </Text>
+          </XStack>
+          <XStack backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+            <Text fontSize={11} color="$textSecondary" fontWeight="600">
+              Gord: <Text fontWeight="800" color="$color">{Math.round(totalFat)}g</Text>
+            </Text>
+          </XStack>
         </XStack>
       </YStack>
     </Card>

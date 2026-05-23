@@ -11,10 +11,11 @@ interface ExerciseRowProps {
 export function ExerciseRow({ exercise }: ExerciseRowProps) {
   return (
     <Card 
-      variant="flat" 
-      padding="$three" 
-      marginVertical="$one" 
+      variant="elevated" 
+      padding="$four" 
+      marginVertical="$two" 
       width="100%"
+      backgroundColor="$background"
       accessibilityLabel={`Exercício ${exercise.order + 1}: ${exercise.name}, ${exercise.sets} séries de ${exercise.reps} repetições${exercise.loadKg ? `, carga de ${exercise.loadKg} quilos` : ''}`}
       accessibilityRole="text"
     >
@@ -23,25 +24,27 @@ export function ExerciseRow({ exercise }: ExerciseRowProps) {
         <XStack gap="$three" alignItems="center" flex={1}>
           {/* Order Badge */}
           <XStack
-            width={32}
-            height={32}
-            borderRadius={16}
+            width={36}
+            height={36}
+            borderRadius={18}
             backgroundColor="$primaryLight"
+            borderWidth={1}
+            borderColor="$backgroundSelected"
             justifyContent="center"
             alignItems="center"
           >
-            <Text color="$primary" fontWeight="bold" fontSize={14}>
+            <Text color="$primary" fontWeight="800" fontSize={14}>
               {exercise.order + 1}
             </Text>
           </XStack>
 
           {/* Exercise Info */}
-          <YStack flex={1} gap="$one">
-            <Text fontSize={16} fontWeight="bold" color="$color">
+          <YStack flex={1} gap="$half">
+            <Text fontSize={15} fontWeight="800" color="$color">
               {exercise.name}
             </Text>
             {exercise.notes ? (
-              <Text fontSize={12} color="$textSecondary" fontStyle="italic">
+              <Text fontSize={12} color="$textSecondary" fontStyle="italic" lineHeight={16}>
                 {exercise.notes}
               </Text>
             ) : null}
@@ -49,25 +52,27 @@ export function ExerciseRow({ exercise }: ExerciseRowProps) {
         </XStack>
 
         {/* Right Side: Sets, Reps, Load & Rest */}
-        <YStack alignItems="flex-end" gap="$one">
-          <Text fontSize={14} fontWeight="bold" color="$primary">
-            {exercise.sets} x {exercise.reps}
-          </Text>
+        <YStack alignItems="flex-end" gap="$two">
+          <XStack backgroundColor="$primaryLight" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.one">
+            <Text fontSize={13} fontWeight="800" color="$primary">
+              {exercise.sets} x {exercise.reps}
+            </Text>
+          </XStack>
           
           <XStack gap="$two" alignItems="center">
             {exercise.loadKg !== undefined && exercise.loadKg !== null ? (
-              <XStack alignItems="center" gap="$one">
-                <Dumbbell size={12} color="$textSecondary" />
-                <Text fontSize={12} color="$textSecondary">
+              <XStack alignItems="center" gap="$one" backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+                <Dumbbell size={11} color="$textSecondary" />
+                <Text fontSize={11} color="$textSecondary" fontWeight="600">
                   {exercise.loadKg} kg
                 </Text>
               </XStack>
             ) : null}
 
             {exercise.restSeconds !== undefined && exercise.restSeconds !== null ? (
-              <XStack alignItems="center" gap="$one">
-                <Clock size={12} color="$textSecondary" />
-                <Text fontSize={12} color="$textSecondary">
+              <XStack alignItems="center" gap="$one" backgroundColor="$backgroundElement" paddingHorizontal="$two" paddingVertical="$half" borderRadius="$radius.half">
+                <Clock size={11} color="$textSecondary" />
+                <Text fontSize={11} color="$textSecondary" fontWeight="600">
                   {exercise.restSeconds}s
                 </Text>
               </XStack>

@@ -31,9 +31,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   // Set default headers
   const defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
     Accept: 'application/json',
   };
+
+  const method = restOptions.method || 'GET';
+  if (method !== 'GET' && method !== 'DELETE') {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
 
   // Get token and inject if exists
   const token = await getAccessToken();
