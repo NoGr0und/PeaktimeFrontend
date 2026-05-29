@@ -47,7 +47,6 @@ export default function ProfessorLayout() {
         name="create-plan"
         options={{
           href: null,
-          tabBarButton: () => null,
         }}
       />
     </Tabs>

@@ -35,7 +35,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   };
 
   const method = restOptions.method || 'GET';
-  if (method !== 'GET' && method !== 'DELETE') {
+  if (method !== 'GET' && method !== 'DELETE' && restOptions.body !== undefined) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
