@@ -9,7 +9,9 @@
       "@/assets/*": [
         "./assets/*"
       ]
-    }
+    },
+    "importHelpers": true,
+    "noEmitHelpers": true
   },
   "include": [
     "**/*.ts",

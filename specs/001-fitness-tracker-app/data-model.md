@@ -1,166 +1,67 @@
-# Data Model: Acompanhamento Fitness
+# Data Model: Monitoramento de Ocupação
 
-Este documento descreve as estruturas de dados, interfaces TypeScript e relacionamentos que serão criados em `src/types/` para representar os dados e contratos da API.
+**Feature**: Tela de ocupação em tempo real  
+**Date**: 2026-06-04
 
----
+## Entities
 
-## 👤 Autenticação (`src/types/auth.ts`)
+### OccupancyReading
 
-### `UserRole`
-Tipo enumerado que define os papéis de usuário suportados pelo sistema.
-```typescript
-export type UserRole = 'ALUNO' | 'PROFESSOR';
+Registra uma leitura de ocupação da academia em um momento específico.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK, auto-generated | Identificador único |
+| `count` | Integer | NOT NULL, >= 0 | Número de pessoas na academia |
+| `capacity` | Integer | NOT NULL, > 0 | Capacidade máxima configurada |
+| `timestamp` | DateTime | NOT NULL, default: now() | Momento exato da leitura |
+
+**Validation Rules**:
+- `count` deve ser >= 0 e <= `capacity`
+- `capacity` deve ser > 0
+
+**Indexes**:
+- `timestamp` (para queries por intervalo de datas)
+
+### Derived Values (não persistidos)
+
+| Value | Cálculo | Descrição |
+|-------|---------|-----------|
+| `percentage` | `(count / capacity) * 100` | Porcentagem de ocupação |
+| `level` | Baseado no `percentage` | Nível textual de lotação |
+
+### Occupancy Level Mapping
+
+| Level | Label PT | Faixa (%) | Cor Hex |
+|-------|----------|-----------|---------|
+| `EMPTY` | Vazio | 0–15 | `#64FFDA` |
+| `QUIET` | Tranquilo | 16–35 | `#00E676` |
+| `MODERATE` | Moderado | 36–60 | `#FFC107` |
+| `BUSY` | Cheio | 61–85 | `#FF9800` |
+| `FULL` | Lotado | 86–100 | `#FF4081` |
+
+## Relationships
+
+```mermaid
+erDiagram
+    OccupancyReading {
+        uuid id PK
+        int count
+        int capacity
+        datetime timestamp
+    }
 ```
 
-### `User`
-Representa um usuário cadastrado (aluno ou professor).
-```typescript
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  birthDate: string; // ISO date string (YYYY-MM-DD)
-  role: UserRole;
-  phone?: string;
-  avatarUrl?: string;
-}
-```
+**Nota**: `OccupancyReading` é uma entidade independente (não vinculada a `User`). Ela reflete o estado global da academia, acessível por todos os usuários autenticados.
 
-### `AuthResponse`
-Estrutura de dados retornada no cadastro ou login bem-sucedido.
-```typescript
-export interface AuthResponse {
-  user: User;
-  access_token: string;
-  refresh_token: string;
-}
-```
+## State Transitions
 
----
+A ocupação não possui transições de estado formais. Cada leitura é um snapshot imutável. O frontend calcula o nível de lotação dinamicamente a partir do `percentage`.
 
-## 🔗 Vínculo Aluno-Professor (`src/types/enrollment.ts`)
+## Forecast Logic
 
-### `Enrollment`
-Representa a relação de vínculo ativa entre aluno e professor.
-```typescript
-export interface Enrollment {
-  id: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  studentAvatarUrl?: string;
-  professorId: string;
-  createdAt: string;
-}
-```
-
-### `InviteCodeResponse`
-Retorno da geração do código de convite gerado pelo professor.
-```typescript
-export interface InviteCodeResponse {
-  code: string; // Código alfanumérico de 6 caracteres
-  expiresAt: string; // ISO string de expiração (48 horas após criação)
-}
-```
-
----
-
-## 🏋️ Gerenciamento de Treinos (`src/types/workout.ts`)
-
-### `Exercise`
-Mapeia um exercício individual dentro de uma rotina.
-```typescript
-export interface Exercise {
-  name: string;
-  sets: number;
-  reps: number;
-  order: number;
-  loadKg?: number;
-  restSeconds?: number;
-  notes?: string;
-}
-```
-
-### `DayPlan`
-Representa o planejamento de treino de um dia específico da semana.
-```typescript
-export interface DayPlan {
-  id: string;
-  dayOfWeek: number; // 0 (Domingo) a 6 (Sábado)
-  name: string;      // Ex: "Treino A - Peito e Tríceps"
-  exercises: Exercise[];
-}
-```
-
-### `WorkoutPlan`
-Plano semanal completo vinculado a um aluno.
-```typescript
-export interface WorkoutPlan {
-  id: string;
-  studentId: string;
-  name: string; // Ex: "Hipertrofia ABC"
-  days: DayPlan[];
-}
-```
-
-### `DailyWorkoutLog`
-Histórico de execução/conclusão de treinos.
-```typescript
-export interface DailyWorkoutLog {
-  id: string;
-  dayPlanId: string;
-  date: string; // Data da conclusão (YYYY-MM-DD)
-  completed: boolean;
-}
-```
-
----
-
-## 🍎 Controle de Nutrição (`src/types/nutrition.ts`)
-
-### `MealType`
-Categorias de refeição.
-```typescript
-export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
-```
-
-### `MealItem`
-Componente alimentício de uma refeição.
-```typescript
-export interface MealItem {
-  name: string;
-  quantity: number; // Ex: 100, 2
-  unit: string;     // Ex: "g", "unidades"
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
-}
-```
-
-### `Meal`
-Estrutura completa de uma refeição registrada.
-```typescript
-export interface Meal {
-  id: string;
-  type: MealType;
-  date: string; // YYYY-MM-DD
-  items: MealItem[];
-  totalCalories?: number;
-  totalProtein?: number;
-  totalCarbs?: number;
-  totalFat?: number;
-}
-```
-
-### `FoodSearchResult`
-Item retornado pela busca no backend integrada com Open Food Facts.
-```typescript
-export interface FoodSearchResult {
-  name: string;
-  calories: number; // por 100g
-  protein: number;  // por 100g
-  carbs: number;    // por 100g
-  fat: number;      // por 100g
-}
-```
+A previsão é calculada no backend via query SQL:
+1. Buscar todas as leituras das últimas 4 semanas para o mesmo `dayOfWeek`
+2. Agrupar por hora do dia
+3. Calcular a média de `count` por hora
+4. Retornar como array de `{ hour: number, avgCount: number }`

@@ -1,149 +1,117 @@
-# Tasks: Acompanhamento Fitness
+# Tasks: Monitoramento de Ocupação da Academia
 
-**Input**: Design documents from `specs/001-fitness-tracker-app/`
+**Input**: Design documents from `/specs/001-fitness-tracker-app/`
 
-**Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/api.md
+**Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅, quickstart.md ✅
+
+**Tests**: Não requisitados na especificação. Tarefas de teste omitidas.
+
+**Organization**: Tarefas organizadas por funcionalidade para implementação incremental.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g. US1, US2, US3)
-- Contains exact file paths in descriptions
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+- **Frontend**: `src/` at `PeaktimeFrontend/` repository root
+- **Backend**: `src/` at `Peaktime Backend/` repository root
 
 ---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Inicialização e configuração de bibliotecas compartilhadas
+**Purpose**: Instalar dependência de gráficos e criar estrutura base
 
-- [x] T000 Install required dependencies (tamagui, @tamagui/config, @tamagui/lucide-icons, expo-secure-store, expo-notifications, expo-device)
-- [x] T001 Initialize and configure Tamagui in src/tamagui.config.ts
-- [x] T002 Update root layout in src/app/_layout.tsx to include TamaguiProvider, wrap the application, and apply the Web-specific max-width (800px) centered layout constraint (defined in theme.ts)
-
----
-
-## Phase 2: Foundational (Blocking Prerequisites)
-
-**Purpose**: Estrutura básica de persistência e chamadas de rede autenticadas
-
-**⚠️ CRITICAL**: Nenhuma tela ou hook de história de usuário pode ser implementado antes da conclusão desta fase.
-
-- [x] T003 Implement token secure storage helper in src/services/storage.ts
-- [x] T004 Implement HTTP Fetch API client with automatic JWT authorization injection in src/services/api.ts
-
-**Checkpoint**: Foundation ready - a implementação das histórias de usuário pode iniciar em paralelo.
+- [x] T001 Instalar `react-native-gifted-charts` via `npx expo install react-native-gifted-charts` no PeaktimeFrontend
+- [x] T002 [P] Criar tipos TypeScript de ocupação em `src/types/occupancy.ts`
+- [x] T003 [P] Adicionar cores dos níveis de ocupação em `src/constants/theme.ts`
 
 ---
 
-## Phase 3: User Story 1 - Autenticação e Registro de Alunos e Professores (Priority: P1) 🎯 MVP
+## Phase 2: Foundational (Backend — Blocking Prerequisites)
 
-**Goal**: Permitir cadastro e login diferenciando os papéis ALUNO e PROFESSOR, salvando o token JWT e redirecionando para os fluxos corretos.
+**Purpose**: Criar o plugin de ocupação no backend com banco de dados e rotas
 
-**Independent Test**: Usuário consegue se registrar e fazer login nas telas, acessando a área correspondente ao seu papel.
+**⚠️ CRITICAL**: O frontend não pode consumir dados sem o backend pronto
+
+- [x] T004 Adicionar modelo `OccupancyReading` em `prisma/schema.prisma` e rodar `npx prisma migrate dev --name add-occupancy-reading`
+- [x] T005 [P] Criar schema de validação em `src/plugins/occupancy/occupancy.schema.ts`
+- [x] T006 [P] Criar service com métodos `getCurrentOccupancy`, `getDayHistory`, `getForecast`, `createReading` em `src/plugins/occupancy/occupancy.service.ts`
+- [x] T007 Criar rotas `GET /current`, `GET /history`, `GET /forecast`, `POST /readings` em `src/plugins/occupancy/occupancy.routes.ts`
+- [x] T008 Criar plugin Fastify que registra o prefixo `/api/occupancy` em `src/plugins/occupancy/occupancy.plugin.ts`
+- [x] T009 Registrar plugin de ocupação no arquivo principal do servidor (se necessário)
+- [x] T010 Popular dados de teste via POST para validar o backend isoladamente
+
+**Checkpoint**: Backend de ocupação pronto — todas as rotas respondendo com dados válidos
+
+---
+
+## Phase 3: User Story 1 — Visualizar Ocupação Atual (Priority: P1) 🎯 MVP
+
+**Goal**: Aluno ou professor abre a tela de ocupação e vê o card com o número de pessoas, porcentagem e nível de lotação
+
+**Independent Test**: Abrir a tela de ocupação e verificar se o card exibe corretamente "42 pessoas", "52%", e "Moderado" com cor amarela
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Create authentication types in src/types/auth.ts
-- [ ] T006 [US1] Implement auth hooks for signup and login in src/hooks/use-auth.ts
-- [ ] T007 [P] [US1] Implement Button UI atomic component using Tamagui in src/components/ui/Button.tsx
-- [ ] T008 [P] [US1] Implement Input UI atomic component using Tamagui in src/components/ui/Input.tsx
-- [ ] T009 [P] [US1] Implement Card UI atomic component using Tamagui in src/components/ui/Card.tsx
-- [ ] T010 [US1] Build register screen utilizing new components in src/app/(auth)/register.tsx
-- [ ] T011 [US1] Build login screen utilizing new components in src/app/(auth)/login.tsx
+- [x] T011 [P] [US1] Criar serviço frontend `occupancyService.ts` em `src/services/occupancyService.ts` com método `getCurrent()`
+- [x] T012 [P] [US1] Criar componente `OccupancyCard.tsx` em `src/components/ui/OccupancyCard.tsx` (exibe count, percentage, level com ícone e cor dinâmica)
+- [x] T013 [P] [US1] Criar componente `OccupancyLegend.tsx` em `src/components/ui/OccupancyLegend.tsx` (5 níveis: Vazio, Tranquilo, Moderado, Cheio, Lotado)
+- [x] T014 [US1] Criar tela `occupancy.tsx` em `src/app/(student)/occupancy.tsx` com cabeçalho (logo + nome do app), OccupancyCard e OccupancyLegend
+- [x] T015 [US1] Adicionar rota "occupancy" ao layout do aluno em `src/app/(student)/_layout.tsx` e ao TabBar
+- [x] T016 [P] [US1] Copiar tela de ocupação para professor em `src/app/(professor)/occupancy.tsx`
+- [x] T017 [US1] Adicionar rota "occupancy" ao layout do professor em `src/app/(professor)/_layout.tsx` e ao TabBar
+- [x] T018 [US1] Implementar polling automático a cada 30 segundos na tela de ocupação
 
-**Checkpoint**: User Story 1 está totalmente funcional e testável.
+**Checkpoint**: Card de ocupação atual funcional com legenda — MVP entregue
 
 ---
 
-## Phase 4: User Story 2 - Vínculo Aluno-Professor via Código (Priority: P1)
+## Phase 4: User Story 2 — Gráfico de Linha (Histórico do Dia) (Priority: P2)
 
-**Goal**: Professor gera um código de convite de 6 caracteres e aluno digita esse código para criar o vínculo, aparecendo na lista do professor.
+**Goal**: Exibir gráfico de linha mostrando como a ocupação variou ao longo do dia
 
-**Independent Test**: Professor gera o código na tela de perfil, aluno insere na sua tela de vínculo e o vínculo é confirmado com sucesso.
+**Independent Test**: Abrir a tela de ocupação e verificar que o gráfico de linha mostra pontos de dados ao longo das horas do dia com a cor do nível
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Create enrollment types in src/types/enrollment.ts
-- [ ] T013 [US2] Implement enrollment hook in src/hooks/use-enrollment.ts
-- [ ] T014 [P] [US2] Implement InviteCodeDisplay component in src/components/InviteCodeDisplay.tsx
-- [ ] T015 [P] [US2] Implement StudentListItem component in src/components/StudentListItem.tsx
-- [ ] T016 [US2] Build professor profile and invite screen in src/app/(professor)/profile.tsx
-- [ ] T017 [US2] Build student profile and vinculation screen in src/app/(student)/profile.tsx
-- [ ] T018 [US2] Build professor student list homepage in src/app/(professor)/index.tsx
+- [x] T019 [US2] Adicionar método `getHistory(date)` ao `occupancyService.ts` em `src/services/occupancyService.ts`
+- [x] T020 [US2] Criar componente `OccupancyChart.tsx` em `src/components/ui/OccupancyChart.tsx` usando `LineChart` do `react-native-gifted-charts`
+- [x] T021 [US2] Integrar `OccupancyChart` na tela `occupancy.tsx` do aluno em `src/app/(student)/occupancy.tsx`
+- [x] T022 [P] [US2] Integrar `OccupancyChart` na tela `occupancy.tsx` do professor em `src/app/(professor)/occupancy.tsx`
 
-**Checkpoint**: Fluxo de convite e vinculação 100% funcional entre professor e aluno.
+**Checkpoint**: Gráfico de linha renderizando com dados históricos do dia
 
 ---
 
-## Phase 5: User Story 3 - Visualização e Conclusão de Treinos Diários (Priority: P1)
+## Phase 5: User Story 3 — Gráfico de Barras (Previsão) (Priority: P2)
 
-**Goal**: Exibir os exercícios do dia da semana atual para o aluno, com botão de confirmação de conclusão.
+**Goal**: Exibir gráfico de barras com a previsão de ocupação para as próximas horas
 
-**Independent Test**: Aluno acessa o treino planejado na tela inicial e confirma a conclusão, recebendo feedback visual.
+**Independent Test**: Abrir a tela de ocupação e verificar que o gráfico de barras mostra previsão para as próximas 4+ horas com cores por nível
 
 ### Implementation for User Story 3
 
-- [x] T019 [P] [US3] Create workout types in src/types/workout.ts
-- [x] T020 [US3] Implement workouts hooks (fetching today, completing log) in src/hooks/use-workouts.ts
-- [x] T021 [P] [US3] Implement ExerciseRow component in src/components/ExerciseRow.tsx
-- [x] T022 [P] [US3] Implement WorkoutCard component in src/components/WorkoutCard.tsx
-- [x] T023 [US3] Build student workout today homepage in src/app/(student)/index.tsx, ensuring the empty state "Nenhum treino planejado para hoje. Aproveite para descansar!" is handled when no workout exists.
+- [x] T023 [US3] Adicionar método `getForecast()` ao `occupancyService.ts` em `src/services/occupancyService.ts`
+- [x] T024 [US3] Criar componente `ForecastChart.tsx` em `src/components/ui/ForecastChart.tsx` usando `BarChart` do `react-native-gifted-charts`
+- [x] T025 [US3] Integrar `ForecastChart` na tela `occupancy.tsx` do aluno em `src/app/(student)/occupancy.tsx`
+- [x] T026 [P] [US3] Integrar `ForecastChart` na tela `occupancy.tsx` do professor em `src/app/(professor)/occupancy.tsx`
 
-**Checkpoint**: Aluno consegue ver o treino diário planejado e registrar a finalização.
-
----
-
-## Phase 6: User Story 4 - Criação de Plano de Treino Semanal pelo Professor (Priority: P2)
-
-**Goal**: Disponibilizar tela para o professor montar a grade de treinos semanais de seus alunos vinculados.
-
-**Independent Test**: Professor seleciona o aluno na lista, monta as séries/exercícios para os dias da semana e salva o plano.
-
-### Implementation for User Story 4
-
-- [x] T024 [US4] Build create weekly workout plan screen in src/app/(professor)/create-plan.tsx
-
-**Checkpoint**: Planos de treinos podem ser criados, atualizados e atribuídos aos alunos.
+**Checkpoint**: Ambos os gráficos renderizando — tela completa
 
 ---
 
-## Phase 7: User Story 5 - Diário de Refeições e Busca de Alimentos (Priority: P2)
+## Phase 6: Polish & Cross-Cutting Concerns
 
-**Goal**: Adicionar refeições selecionando alimentos por busca, visualizá-las organizadas por data e removê-las se necessário.
+**Purpose**: Refinamentos visuais e de UX
 
-**Independent Test**: Aluno realiza busca por alimentos, adiciona a uma categoria de refeição, visualiza os macros na lista diária e exclui a refeição.
-
-### Implementation for User Story 5
-
-- [ ] T025 [P] [US5] Create nutrition types in src/types/nutrition.ts
-- [ ] T026 [US5] Implement nutrition hooks in src/hooks/use-nutrition.ts
-- [ ] T027 [P] [US5] Implement MealCard component in src/components/MealCard.tsx
-- [ ] T028 [US5] Build nutrition daily log and meal addition/search screen in src/app/(student)/nutrition.tsx, implementing debounce on real-time food search to meet the 1.5-second performance criteria (SC-002).
-
-**Checkpoint**: Diário de nutrição ativo e sincronizado com API nutricional.
-
----
-
-## Phase 7.5: Push Notifications & Settings (Constitution Requirement)
-
-**Purpose**: Sincronização de tokens de notificações push para alunos e professores.
-
-- [x] T028a [P] [US1] Create settings and push notification types in src/types/settings.ts
-- [x] T028b [US1] Implement settings custom hook containing register push token logic in src/hooks/use-settings.ts
-- [x] T028c [US1] Integrate push notifications permissions check, token acquisition, and registry inside app root layout src/app/_layout.tsx
-
-**Checkpoint**: Registro de push tokens totalmente operacional após autenticação de usuários.
-
----
-
-## Phase 8: Polish & Cross-Cutting Concerns
-
-**Purpose**: Ajustes de navegação estrutural, layout final, acessibilidade e validação geral.
-
-- [x] T029 Configure student navigation tabs layout in src/app/(student)/_layout.tsx
-- [x] T030 Configure professor navigation tabs layout in src/app/(professor)/_layout.tsx
-- [x] T030a [US1] Add basic SEO metadata inside routes utilizing the Expo Router Head component (Principle V)
-- [x] T031 Run validation build, check accessibility properties (accessibilityLabel/accessibilityRole), and run TypeScript compilation checks across the app
+- [x] T027 [P] Adicionar animações de entrada (MotiView) em todos os componentes de ocupação
+- [x] T028 [P] Adicionar `accessibilityLabel` e `accessibilityRole` em OccupancyCard, OccupancyChart, ForecastChart e OccupancyLegend
+- [x] T029 Garantir responsividade mobile-first (320px+) e maxWidth 800px na web
+- [x] T030 Validar quickstart.md — executar todos os passos e confirmar que a tela funciona end-to-end
 
 ---
 
@@ -151,12 +119,75 @@
 
 ### Phase Dependencies
 
-1.  **Setup (Phase 1)**: Sem dependências (Início imediato).
-2.  **Foundational (Phase 2)**: Depende do Setup (Bloqueia todas as Histórias de Usuário).
-3.  **User Stories (Phase 3+)**: Dependem da finalização da fase Foundational.
-    -   Podem ser executadas em sequência lógica ou paralelo.
-4.  **Polish (Phase 8)**: Depende de todas as histórias concluídas.
+- **Setup (Phase 1)**: Sem dependências — iniciar imediatamente
+- **Foundational (Phase 2)**: Depende do Setup — BLOQUEIA todas as User Stories
+- **US1 (Phase 3)**: Depende do Phase 2 — pode iniciar T011-T013 em paralelo
+- **US2 (Phase 4)**: Depende da US1 (tela já criada) — adiciona gráfico de linha
+- **US3 (Phase 5)**: Depende da US1 (tela já criada) — pode ser paralelo com US2
+- **Polish (Phase 6)**: Depende de US1 + US2 + US3
+
+### User Story Dependencies
+
+- **US1 (P1)**: Card + Legenda → pode ser desenvolvida assim que o backend estiver pronto
+- **US2 (P2)**: Gráfico de Linha → depende da tela criada em US1, mas o componente pode ser desenvolvido em paralelo
+- **US3 (P2)**: Gráfico de Barras → depende da tela criada em US1, pode ser paralelo com US2
+
+### Within Each User Story
+
+- Services antes de componentes
+- Componentes antes de integração na tela
+- Tela do aluno antes de replicar para professor
 
 ### Parallel Opportunities
 
--   Todas as tarefas marcadas com `[P]` (ex: criação de tipos TS, ou componentes visuais isolados) podem ser executadas simultaneamente ou em paralelo por diferentes desenvolvedores, pois operam em arquivos distintos e sem dependência mútua direta.
+- T002 e T003 podem rodar em paralelo (Setup)
+- T005 e T006 podem rodar em paralelo (Backend)
+- T011, T012 e T013 podem rodar em paralelo (US1 — arquivos diferentes)
+- T016 pode rodar em paralelo com T015 (professor vs aluno layout)
+- US2 e US3 podem ser desenvolvidas em paralelo após US1
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch all parallelizable US1 tasks together:
+Task: "Criar serviço occupancyService.ts em src/services/occupancyService.ts"
+Task: "Criar componente OccupancyCard.tsx em src/components/ui/OccupancyCard.tsx"
+Task: "Criar componente OccupancyLegend.tsx em src/components/ui/OccupancyLegend.tsx"
+
+# Then sequentially:
+Task: "Criar tela occupancy.tsx em src/app/(student)/occupancy.tsx"
+Task: "Adicionar rota ao layout e TabBar"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup (instalar gifted-charts + tipos + cores)
+2. Complete Phase 2: Backend (modelo + rotas + dados de teste)
+3. Complete Phase 3: User Story 1 (card + legenda + tela)
+4. **STOP and VALIDATE**: Testar tela de ocupação isoladamente
+5. Deploy/demo se pronto
+
+### Incremental Delivery
+
+1. Setup + Backend → Infraestrutura pronta
+2. Add US1 → Card de ocupação atual → Deploy (MVP!)
+3. Add US2 → Gráfico de linha do dia → Deploy
+4. Add US3 → Gráfico de barras de previsão → Deploy
+5. Polish → Animações, a11y, responsividade
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
+- `react-native-gifted-charts` já tem todas as peer deps instaladas no projeto

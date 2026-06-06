@@ -1,57 +1,68 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { Colors } from '@/constants/theme';
-import { Dumbbell, Utensils, User } from '@tamagui/lucide-icons-2';
+import React, { useEffect, useState } from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import { TabBar } from '../../components/layout/TabBar';
+import { enrollmentService } from '../../services/enrollmentService';
+import { View, ActivityIndicator } from 'react-native';
+import { Theme } from '../../constants/theme';
 
 export default function StudentLayout() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? 'dark' : 'light';
-  const themeColors = Colors[theme];
+  const [isChecking, setIsChecking] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function checkEnrollment() {
+      const prof = await enrollmentService.getProfessor();
+      if (!prof) {
+        router.replace('/(student)/join');
+      }
+      setIsChecking(false);
+    }
+    
+    checkEnrollment();
+  }, []);
+
+  if (isChecking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Theme.colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color={Theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: themeColors.background,
-          borderTopColor: themeColors.backgroundSelected,
-          borderTopWidth: 1,
-          elevation: 8,
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-        },
-      }}
-    >
+    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
-          title: 'Treino',
-          tabBarIcon: ({ color, size }) => <Dumbbell size={size} color={color as any} />,
-          tabBarAccessibilityLabel: 'Aba de Treinos',
+          title: 'Início',
+          tabBarIcon: 'house.fill' as any,
         }}
       />
       <Tabs.Screen
         name="nutrition"
         options={{
-          title: 'Diário',
-          tabBarIcon: ({ color, size }) => <Utensils size={size} color={color as any} />,
-          tabBarAccessibilityLabel: 'Aba de Diário de Refeições',
+          title: 'Nutrição',
+          tabBarIcon: 'leaf.fill' as any,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color as any} />,
-          tabBarAccessibilityLabel: 'Aba de Perfil',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="occupancy"
+        options={{
+          title: 'Ocupação',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={24} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
-

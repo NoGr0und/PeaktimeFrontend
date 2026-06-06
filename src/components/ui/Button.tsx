@@ -1,123 +1,99 @@
 import React from 'react';
-import { Button as TButton, Spinner, Text, styled, ButtonProps as TButtonProps } from 'tamagui';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Theme } from '../../constants/theme';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
-export type ButtonSize = 'small' | 'medium' | 'large';
-
-export interface ButtonProps extends Omit<TButtonProps, 'size' | 'variant'> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+interface ButtonProps extends TouchableOpacityProps {
+  title: string;
+  variant?: 'primary' | 'secondary' | 'outline';
   isLoading?: boolean;
-  textStyle?: any;
 }
 
-const StyledButton = styled(TButton, {
-  name: 'CustomButton',
-  role: 'button',
-  pressStyle: {
-    opacity: 0.8,
-    scale: 0.98,
-  },
-  borderRadius: '$radius.one',
-  borderWidth: 1,
-  borderColor: 'transparent',
-  justifyContent: 'center',
-  alignItems: 'center',
-  flexDirection: 'row',
-  gap: '$two',
-
-  variants: {
-    variant: {
-      primary: {
-        backgroundColor: '$primary',
-        borderColor: '$primary',
-        hoverStyle: {
-          backgroundColor: '$accent',
-          borderColor: '$accent',
-        },
-      },
-      secondary: {
-        backgroundColor: '$primaryLight',
-        borderColor: 'transparent',
-        hoverStyle: {
-          backgroundColor: '$backgroundSelected',
-        },
-      },
-      outline: {
-        backgroundColor: 'transparent',
-        borderColor: '$primary',
-        hoverStyle: {
-          backgroundColor: '$primaryLight',
-        },
-      },
-      ghost: {
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        hoverStyle: {
-          backgroundColor: '$backgroundSelected',
-        },
-      },
-    },
-    size: {
-      small: {
-        height: 36,
-        paddingHorizontal: '$three',
-      },
-      medium: {
-        height: 48,
-        paddingHorizontal: '$four',
-      },
-      large: {
-        height: 56,
-        paddingHorizontal: '$five',
-      },
-    },
-  } as const,
-
-  defaultVariants: {
-    variant: 'primary',
-    size: 'medium',
-  },
-});
-
-export const Button = React.forwardRef<any, ButtonProps>(
-  ({ children, variant = 'primary', size = 'medium', isLoading, disabled, textStyle, ...props }, ref) => {
-    // Determine text colors based on variant
-    const getTextColor = () => {
-      if (disabled) return '$textSecondary';
-      if (variant === 'primary') return '#ffffff';
-      if (variant === 'outline' || variant === 'ghost') return '$primary';
-      return '$color'; // default themed text color
-    };
-
+export const Button = ({ title, variant = 'primary', isLoading, style, accessibilityLabel, ...props }: ButtonProps) => {
+  if (variant === 'primary') {
     return (
-      <StyledButton
-        ref={ref}
-        variant={variant}
-        size={size}
-        disabled={disabled || isLoading}
-        opacity={disabled || isLoading ? 0.6 : 1}
+      <TouchableOpacity 
+        activeOpacity={0.8} 
+        style={[styles.container, style]} 
+        disabled={isLoading || props.disabled}
         accessibilityRole="button"
-        accessibilityState={{ disabled: !!(disabled || isLoading), busy: !!isLoading }}
+        accessibilityLabel={accessibilityLabel || title}
+        accessibilityState={{ disabled: isLoading || props.disabled }}
         {...props}
       >
-        {isLoading ? (
-          <Spinner color={variant === 'primary' ? '#ffffff' : '$primary'} />
-        ) : typeof children === 'string' ? (
-          <Text
-            color={getTextColor()}
-            fontWeight="600"
-            fontSize={size === 'small' ? 14 : size === 'large' ? 18 : 16}
-            style={textStyle}
-          >
-            {children}
-          </Text>
-        ) : (
-          children
-        )}
-      </StyledButton>
+        <LinearGradient
+          colors={Theme.gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradient}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={Theme.colors.background} />
+          ) : (
+            <Text style={styles.primaryText}>{title}</Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
     );
   }
-);
 
-Button.displayName = 'Button';
+  return (
+    <TouchableOpacity 
+      activeOpacity={0.8} 
+      style={[
+        styles.container, 
+        styles.secondaryContainer,
+        variant === 'outline' && styles.outlineContainer,
+        style
+      ]} 
+      disabled={isLoading || props.disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityState={{ disabled: isLoading || props.disabled }}
+      {...props}
+    >
+      {isLoading ? (
+        <ActivityIndicator color={Theme.colors.primary} />
+      ) : (
+        <Text style={[styles.secondaryText, variant === 'outline' && styles.outlineText]}>{title}</Text>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    height: 56,
+    borderRadius: Theme.borderRadius.round,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryContainer: {
+    backgroundColor: Theme.colors.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  outlineContainer: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Theme.colors.primary,
+  },
+  primaryText: {
+    color: Theme.colors.background,
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.md,
+  },
+  secondaryText: {
+    color: Theme.colors.text,
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.md,
+  },
+  outlineText: {
+    color: Theme.colors.primary,
+  },
+});

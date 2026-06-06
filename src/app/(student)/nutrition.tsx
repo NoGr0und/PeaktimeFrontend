@@ -1,927 +1,306 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { StyleSheet, ScrollView, Modal, ActivityIndicator, Pressable, useColorScheme } from 'react-native';
-import { YStack, XStack, Text, Spinner, Input as TInput } from 'tamagui';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
-import Head from 'expo-router/head';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Search,
-  X,
-  Check,
-  Utensils,
-  Coffee,
-  Apple,
-  Trash2,
-  Calendar,
-  AlertTriangle,
-  RefreshCw,
-} from '@tamagui/lucide-icons-2';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Theme } from '../../constants/theme';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { FoodSearch } from '../../components/ui/FoodSearch';
+import { nutritionService, MealLog, MealType } from '../../services/nutritionService';
+import { MotiView } from 'moti';
+import { SymbolView } from 'expo-symbols';
 
-import { useNutrition } from '@/hooks/use-nutrition';
-import { MealCard } from '@/components/MealCard';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Colors } from '@/constants/theme';
-import { MealType, FoodSearchResult } from '@/types/nutrition';
 
-const TARGET_CALORIES = 2000;
-const TARGET_PROTEIN = 130;
-const TARGET_CARBS = 220;
-const TARGET_FAT = 70;
-
-const MEAL_CATEGORIES: { type: MealType; label: string; icon: any }[] = [
-  { type: 'BREAKFAST', label: 'Café da Manhã', icon: Coffee },
-  { type: 'LUNCH', label: 'Almoço', icon: Utensils },
-  { type: 'SNACK', label: 'Lanche', icon: Apple },
-  { type: 'DINNER', label: 'Jantar', icon: Utensils },
-];
+const MEAL_LABELS: Record<MealType, string> = {
+  BREAKFAST: 'Café da Manhã',
+  LUNCH: 'Almoço',
+  SNACK: 'Lanche',
+  DINNER: 'Jantar'
+};
 
 export default function NutritionScreen() {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? 'dark' : 'light';
-  const themeColors = Colors[theme];
+  const [meals, setMeals] = useState<MealLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
 
-  // Date State
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  useEffect(() => {
+    loadMeals();
+  }, []);
 
-  // Modal & Log Creation State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<MealType>('BREAKFAST');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFood, setSelectedFood] = useState<FoodSearchResult | null>(null);
-  const [quantity, setQuantity] = useState('100');
-  const [unit, setUnit] = useState('g');
-  const [stagedItems, setStagedItems] = useState<{
-    name: string;
-    quantity: number;
-    unit: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  }[]>([]);
+  const loadMeals = async () => {
+    try {
+      setIsLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      const data = await nutritionService.getDailyMeals(today);
+      setMeals(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const {
-    meals,
-    isLoading,
-    isSearching,
-    error,
-    searchResult,
-    searchError,
-    fetchMeals,
-    createMeal,
-    deleteMeal,
-    searchFood,
-    setSearchResult,
-  } = useNutrition();
+  const handleAddMeal = async (foodId: string, mealType: MealType, quantity: number) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await nutritionService.logMeal({
+        foodId,
+        mealType,
+        quantity,
+        date: today
+      });
+      await loadMeals();
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível registrar a refeição.');
+      throw error;
+    }
+  };
 
-  // Format Date to YYYY-MM-DD (local time)
-  const dateStr = useMemo(() => {
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }, [selectedDate]);
+  const handleDelete = async (id: string) => {
+    try {
+      await nutritionService.deleteMeal(id);
+      setMeals(meals.filter(m => m.id !== id));
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível remover a refeição.');
+    }
+  };
 
-  // Fetch meals on focus and date change
-  useFocusEffect(
-    useCallback(() => {
-      fetchMeals(dateStr);
-    }, [fetchMeals, dateStr])
+  const confirmDelete = (id: string, name: string) => {
+    Alert.alert(
+      'Remover refeição',
+      `Deseja realmente remover ${name}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => handleDelete(id) }
+      ]
+    );
+  };
+
+  // Calculate totals
+  const totals = meals.reduce(
+    (acc, meal) => {
+      acc.calories += meal.food.calories * meal.quantity;
+      acc.protein += meal.food.protein * meal.quantity;
+      acc.carbs += meal.food.carbs * meal.quantity;
+      acc.fat += meal.food.fat * meal.quantity;
+      return acc;
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  // Debounced search logic (300ms)
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.trim() && isModalOpen) {
-        searchFood(searchQuery);
-      } else {
-        setSearchResult([]);
-      }
-    }, 300);
+  // Group meals by type
+  const mealsByType = meals.reduce((acc, meal) => {
+    if (!acc[meal.mealType]) acc[meal.mealType] = [];
+    acc[meal.mealType].push(meal);
+    return acc;
+  }, {} as Record<MealType, MealLog[]>);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, searchFood, setSearchResult, isModalOpen]);
-
-  // Calculate Consumed Totals for the Selected Date
-  const consumedTotals = useMemo(() => {
-    let calories = 0;
-    let protein = 0;
-    let carbs = 0;
-    let fat = 0;
-
-    meals.forEach((meal) => {
-      meal.items.forEach((item) => {
-        calories += item.calories || 0;
-        protein += item.protein || 0;
-        carbs += item.carbs || 0;
-        fat += item.fat || 0;
-      });
-    });
-
-    return {
-      calories: Math.round(calories),
-      protein: Math.round(protein),
-      carbs: Math.round(carbs),
-      fat: Math.round(fat),
-    };
-  }, [meals]);
-
-  // Proportional Macros for Selected Food item
-  const calculatedMacros = useMemo(() => {
-    if (!selectedFood) return null;
-    const qty = parseFloat(quantity) || 0;
-    return {
-      calories: Math.round((selectedFood.caloriesPer100g * qty) / 100),
-      protein: parseFloat(((selectedFood.proteinPer100g * qty) / 100).toFixed(1)),
-      carbs: parseFloat(((selectedFood.carbsPer100g * qty) / 100).toFixed(1)),
-      fat: parseFloat(((selectedFood.fatPer100g * qty) / 100).toFixed(1)),
-    };
-  }, [selectedFood, quantity]);
-
-  // Date Navigation Handlers
-  const handlePrevDay = () => {
-    const prev = new Date(selectedDate);
-    prev.setDate(prev.getDate() - 1);
-    setSelectedDate(prev);
-  };
-
-  const handleNextDay = () => {
-    const next = new Date(selectedDate);
-    next.setDate(next.getDate() + 1);
-    setSelectedDate(next);
-  };
-
-  const handleToday = () => {
-    setSelectedDate(new Date());
-  };
-
-  const getFormattedDate = () => {
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (dateStr === today.toISOString().split('T')[0]) {
-      return 'Hoje';
-    }
-    if (dateStr === yesterday.toISOString().split('T')[0]) {
-      return 'Ontem';
-    }
-
-    const formatted = selectedDate.toLocaleDateString('pt-BR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
-    // Capitalize first letter
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  };
-
-  // Add Item to staged list
-  const handleAddStagedItem = () => {
-    if (!selectedFood || !calculatedMacros) return;
-    const qty = parseFloat(quantity) || 0;
-    if (qty <= 0) return;
-
-    setStagedItems((prev) => [
-      ...prev,
-      {
-        name: selectedFood.name,
-        quantity: qty,
-        unit: unit || 'g',
-        ...calculatedMacros,
-      },
-    ]);
-
-    // Reset search / selection state to allow adding next items
-    setSelectedFood(null);
-    setSearchQuery('');
-    setQuantity('100');
-    setUnit('g');
-  };
-
-  // Remove item from staged list
-  const handleRemoveStagedItem = (index: number) => {
-    setStagedItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  // Open modal preselected to category
-  const handleOpenAddModal = (category: MealType) => {
-    setSelectedCategory(category);
-    setIsModalOpen(true);
-  };
-
-  // Save the complete meal
-  const handleSaveMeal = async () => {
-    if (stagedItems.length === 0) return;
-
-    const payload = {
-      type: selectedCategory,
-      date: selectedDate.toISOString(),
-      items: stagedItems,
-    };
-
-    try {
-      await createMeal(payload, dateStr);
-      // Reset and close
-      setStagedItems([]);
-      setSelectedFood(null);
-      setSearchQuery('');
-      setIsModalOpen(false);
-    } catch {
-      // Error handled by hook
-    }
-  };
-
-  const handleDeleteMeal = async (mealId: string) => {
-    try {
-      await deleteMeal(mealId, dateStr);
-    } catch {
-      // Error handled by hook
-    }
-  };
-
-  const stagedTotals = useMemo(() => {
-    return stagedItems.reduce(
-      (acc, item) => {
-        acc.calories += item.calories;
-        acc.protein += item.protein;
-        acc.carbs += item.carbs;
-        acc.fat += item.fat;
-        return acc;
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  const renderMacro = (label: string, current: number, goal: number, color: string) => {
+    const percentage = Math.min((current / goal) * 100, 100);
+    return (
+      <View style={styles.macroContainer}>
+        {/* <AnimatedCircularProgress
+          size={50}
+          width={4}
+          fill={percentage}
+          tintColor={color}
+          backgroundColor={Theme.colors.surfaceLight}
+          rotation={0}
+        >
+          {() => (
+            <Text style={styles.macroValue}>{Math.round(current)}g</Text>
+          )}
+        </AnimatedCircularProgress> */}
+        <Text style={styles.macroValue}>{Math.round(current)}g</Text>
+        <Text style={styles.macroLabel}>{label}</Text>
+      </View>
     );
-  }, [stagedItems]);
+  };
 
   return (
-    <>
-      <Head>
-        <title>Diário de Refeições - Peaktime</title>
-        <meta name="description" content="Acompanhe sua ingestão de calorias e macronutrientes diários no diário alimentar do Peaktime." />
-      </Head>
-      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.backgroundElement }]}>
+    <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <YStack gap="$four" padding="$four" width="100%" maxWidth={800} alignSelf="center">
-          
-          {/* Top Bar Header */}
-          <XStack justifyContent="space-between" alignItems="center">
-            <Text fontSize={22} fontWeight="bold" color="$color">
-              Diário de Refeições
-            </Text>
-            {dateStr !== new Date().toISOString().split('T')[0] && (
-              <Button
-                variant="ghost"
-                size="small"
-                onPress={handleToday}
-                icon={<Calendar size={14} color={themeColors.primary} />}
-                accessibilityLabel="Ir para o dia de hoje"
+        
+        <View style={styles.header}>
+          <Text style={styles.title}>Diário de Nutrição</Text>
+          <Text style={styles.subtitle}>Hoje</Text>
+        </View>
+
+        <MotiView
+          from={{ opacity: 0, translateY: -10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600 }}
+        >
+          <Card glass style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Resumo do Dia</Text>
+            
+            <View style={styles.caloriesRow}>
+              <Text style={styles.caloriesText}>
+                {Math.round(totals.calories)} <Text style={styles.caloriesLabel}>/ 2500 kcal</Text>
+              </Text>
+            </View>
+
+            <View style={styles.macrosRow}>
+              {renderMacro('PROT', totals.protein, 150, Theme.colors.secondary)}
+              {renderMacro('CARB', totals.carbs, 250, Theme.colors.success)}
+              {renderMacro('GORD', totals.fat, 70, Theme.colors.accent)}
+            </View>
+          </Card>
+        </MotiView>
+
+        <Button 
+          title="+ Adicionar Refeição" 
+          onPress={() => setShowSearch(true)}
+          style={styles.addBtn}
+        />
+
+        {isLoading ? (
+          <ActivityIndicator color={Theme.colors.primary} style={{ marginTop: 40 }} />
+        ) : (
+          (Object.keys(MEAL_LABELS) as MealType[]).map((type, index) => {
+            const typeMeals = mealsByType[type] || [];
+            
+            if (typeMeals.length === 0) return null;
+
+            return (
+              <MotiView
+                key={type}
+                from={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', delay: index * 100 }}
+                style={styles.mealSection}
               >
-                Hoje
-              </Button>
-            )}
-          </XStack>
+                <Text style={styles.mealSectionTitle}>{MEAL_LABELS[type]}</Text>
+                
+                {typeMeals.map((meal) => (
+                  <View key={meal.id} style={styles.mealItem}>
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealName}>{meal.food.name}</Text>
+                      <Text style={styles.mealDetails}>
+                        {meal.quantity}x {meal.food.portion} • {Math.round(meal.food.calories * meal.quantity)} kcal
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => confirmDelete(meal.id, meal.food.name)}>
+                      <SymbolView name="trash" size={20} tintColor={Theme.colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </MotiView>
+            );
+          })
+        )}
 
-          {/* Date Selector Navigation */}
-          <Card variant="flat" padding="$three" backgroundColor="$background">
-            <XStack justifyContent="space-between" alignItems="center">
-              <Button
-                variant="ghost"
-                size="small"
-                circular
-                onPress={handlePrevDay}
-                icon={<ChevronLeft size={20} color={themeColors.primary} />}
-                accessibilityLabel="Dia anterior"
-              />
-              <Text fontSize={16} fontWeight="bold" color="$color">
-                {getFormattedDate()}
-              </Text>
-              <Button
-                variant="ghost"
-                size="small"
-                circular
-                onPress={handleNextDay}
-                icon={<ChevronRight size={20} color={themeColors.primary} />}
-                accessibilityLabel="Próximo dia"
-              />
-            </XStack>
-          </Card>
-          {/* Calorie & Macronutrient Summary Dashboard Card */}
-          <Card variant="elevated" padding="$four" backgroundColor="$background" gap="$four">
-            <YStack gap="$half">
-              <Text fontSize={15} fontWeight="800" color="$color">
-                Resumo Nutricional
-              </Text>
-              <Text fontSize={12} color="$textSecondary" fontWeight="500">
-                Acompanhamento diário de energia e macros
-              </Text>
-            </YStack>
-
-            <XStack gap="$four" alignItems="center" justifyContent="space-between" flexWrap="wrap">
-              {/* Left Side: Circular Calorie Indicator */}
-              <XStack alignItems="center" gap="$three">
-                <YStack
-                  width={96}
-                  height={96}
-                  borderRadius={48}
-                  backgroundColor="$primaryLight"
-                  justifyContent="center"
-                  alignItems="center"
-                  shadowColor="#0f172a"
-                  shadowOffset={{ width: 0, height: 4 }}
-                  shadowOpacity={0.03}
-                  shadowRadius={8}
-                  elevation={1}
-                >
-                  <YStack
-                    width={80}
-                    height={80}
-                    borderRadius={40}
-                    backgroundColor="$background"
-                    justifyContent="center"
-                    alignItems="center"
-                  >
-                    <Text fontSize={18} fontWeight="800" color="$color">
-                      {consumedTotals.calories}
-                    </Text>
-                    <Text fontSize={11} color="$textSecondary" fontWeight="600" textTransform="uppercase" letterSpacing={0.5}>
-                      kcal
-                    </Text>
-                  </YStack>
-                </YStack>
-
-                <YStack gap="$one">
-                  <Text fontSize={11} fontWeight="800" color="$textSecondary" textTransform="uppercase" letterSpacing={0.5}>
-                    Consumido
-                  </Text>
-                  <Text fontSize={18} fontWeight="800" color="$primary">
-                    {consumedTotals.calories} kcal
-                  </Text>
-                  <XStack alignItems="center" gap="$one">
-                    <Text fontSize={12} color="$textSecondary" fontWeight="600">
-                      Meta: {TARGET_CALORIES} kcal
-                    </Text>
-                  </XStack>
-                </YStack>
-              </XStack>
-
-              {/* Right Side: Remaining Calorie Status Pill */}
-              <YStack alignItems="flex-end" justifyContent="center">
-                <Text fontSize={11} fontWeight="800" color="$textSecondary" textTransform="uppercase" letterSpacing={0.5} marginBottom="$one">
-                  Restante
-                </Text>
-                <XStack
-                  backgroundColor={consumedTotals.calories > TARGET_CALORIES ? '#fff2f0' : '$primaryLight'}
-                  paddingHorizontal="$three"
-                  paddingVertical="$two"
-                  borderRadius="$radius.two"
-                  alignItems="center"
-                  gap="$two"
-                >
-                  <Text fontSize={16} fontWeight="800" color={consumedTotals.calories > TARGET_CALORIES ? '#ff4d4f' : '$primary'}>
-                    {Math.max(0, TARGET_CALORIES - consumedTotals.calories)}
-                  </Text>
-                  <Text fontSize={11} fontWeight="700" color={consumedTotals.calories > TARGET_CALORIES ? '#ff4d4f' : '$primary'}>
-                    kcal
-                  </Text>
-                </XStack>
-              </YStack>
-            </XStack>
-
-            {/* Macro Details Row */}
-            <XStack gap="$three" justifyContent="space-between" borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$three" marginTop="$one">
-              {/* Carb */}
-              <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Carbos</Text>
-                  <Text fontSize={11} fontWeight="800" color="$color">
-                    {consumedTotals.carbs}g/{TARGET_CARBS}g
-                  </Text>
-                </XStack>
-                <XStack height={5} borderRadius={2.5} backgroundColor="$backgroundSelected" overflow="hidden">
-                  <XStack
-                    height="100%"
-                    backgroundColor="#f5b041"
-                    width={`${Math.min(100, (consumedTotals.carbs / TARGET_CARBS) * 100)}%`}
-                  />
-                </XStack>
-              </YStack>
-
-              {/* Protein */}
-              <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Proteínas</Text>
-                  <Text fontSize={11} fontWeight="800" color="$color">
-                    {consumedTotals.protein}g/{TARGET_PROTEIN}g
-                  </Text>
-                </XStack>
-                <XStack height={5} borderRadius={2.5} backgroundColor="$backgroundSelected" overflow="hidden">
-                  <XStack
-                    height="100%"
-                    backgroundColor="#2ecc71"
-                    width={`${Math.min(100, (consumedTotals.protein / TARGET_PROTEIN) * 100)}%`}
-                  />
-                </XStack>
-              </YStack>
-
-              {/* Fat */}
-              <YStack flex={1} gap="$one">
-                <XStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize={11} color="$textSecondary" fontWeight="700">Gorduras</Text>
-                  <Text fontSize={11} fontWeight="800" color="$color">
-                    {consumedTotals.fat}g/{TARGET_FAT}g
-                  </Text>
-                </XStack>
-                <XStack height={5} borderRadius={2.5} backgroundColor="$backgroundSelected" overflow="hidden">
-                  <XStack
-                    height="100%"
-                    backgroundColor="#e74c3c"
-                    width={`${Math.min(100, (consumedTotals.fat / TARGET_FAT) * 100)}%`}
-                  />
-                </XStack>
-              </YStack>
-            </XStack>
-          </Card>
-          {/* Meals List grouped by Category */}
-          <YStack gap="$three">
-            <Text fontSize={16} fontWeight="bold" color="$color">
-              Refeições do Dia
-            </Text>
-
-            {isLoading ? (
-              <YStack py="$five" justifyContent="center" alignItems="center">
-                <Spinner size="large" color="$primary" />
-                <Text mt="$two" color="$textSecondary" fontSize={14}>
-                  Carregando refeições...
-                </Text>
-              </YStack>
-            ) : error ? (
-              <YStack py="$five" px="$four" gap="$two" alignItems="center" backgroundColor="$background" borderRadius="$radius.two">
-                <AlertTriangle size={32} color={themeColors.accent} />
-                <Text fontWeight="bold" color="$color">Erro ao carregar diário</Text>
-                <Text fontSize={13} color="$textSecondary" textAlign="center">{error}</Text>
-                <Button variant="outline" size="small" onPress={() => fetchMeals(dateStr)} icon={<RefreshCw size={14} />}>
-                  Recarregar
-                </Button>
-              </YStack>
-            ) : (
-              MEAL_CATEGORIES.map((category) => {
-                const categoryMeals = meals.filter((m) => m.type === category.type);
-                const IconComp = category.icon;
-
-                return (
-                  <YStack key={category.type} gap="$two">
-                    <XStack justifyContent="space-between" alignItems="center" px="$one">
-                      <XStack gap="$two" alignItems="center">
-                        <IconComp size={16} color={themeColors.primary} />
-                        <Text fontSize={14} fontWeight="bold" color="$color">
-                          {category.label}
-                        </Text>
-                      </XStack>
-                      {categoryMeals.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="small"
-                          onPress={() => handleOpenAddModal(category.type)}
-                          icon={<Plus size={14} color={themeColors.primary} />}
-                          accessibilityLabel={`Adicionar mais itens no ${category.label}`}
-                          paddingHorizontal="$two"
-                          height={28}
-                        >
-                          Adicionar
-                        </Button>
-                      )}
-                    </XStack>
-
-                    {categoryMeals.length > 0 ? (
-                      categoryMeals.map((meal) => (
-                        <MealCard
-                          key={meal.id}
-                          meal={meal}
-                          onDelete={handleDeleteMeal}
-                        />
-                      ))
-                    ) : (
-                      /* Beautiful Dashed Empty State Placeholder */
-                      <Pressable
-                        onPress={() => handleOpenAddModal(category.type)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Registrar ${category.label}`}
-                      >
-                        <YStack
-                          borderWidth={1.5}
-                          borderColor="$backgroundSelected"
-                          borderStyle="dashed"
-                          borderRadius="$radius.two"
-                          padding="$four"
-                          alignItems="center"
-                          justifyContent="center"
-                          backgroundColor="$background"
-                          gap="$two"
-                          pressStyle={{ opacity: 0.7 }}
-                        >
-                          <Plus size={20} color={themeColors.textSecondary} />
-                          <Text fontSize={13} fontWeight="600" color="$textSecondary">
-                            Registrar {category.label}
-                          </Text>
-                        </YStack>
-                      </Pressable>
-                    )}
-                  </YStack>
-                );
-              })
-            )}
-          </YStack>
-
-        </YStack>
       </ScrollView>
 
-      {/* Modal - Add / Log Meal Food Items */}
-      <Modal
-        visible={isModalOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalOpen(false)}
-      >
-        <SafeAreaView style={styles.modalOverlay}>
-          <YStack style={[styles.modalContent, { backgroundColor: themeColors.background }]}>
-            
-            {/* Modal Header */}
-            <XStack justifyContent="space-between" alignItems="center" borderBottomWidth={1} borderColor="$backgroundSelected" paddingBottom="$three" marginBottom="$three">
-              <Text fontSize={18} fontWeight="bold" color="$color">
-                Registrar Refeição
-              </Text>
-              <Button
-                variant="ghost"
-                size="small"
-                circular
-                onPress={() => {
-                  setIsModalOpen(false);
-                  setStagedItems([]);
-                  setSelectedFood(null);
-                  setSearchQuery('');
-                }}
-                icon={<X size={20} color={themeColors.textSecondary} />}
-                accessibilityLabel="Fechar modal"
-              />
-            </XStack>
-
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <YStack gap="$four">
-                
-                {/* Category Button Selector Group */}
-                <YStack gap="$two">
-                  <Text fontSize={13} fontWeight="600" color="$textSecondary">Categoria da Refeição</Text>
-                  <XStack flexWrap="wrap" gap="$two">
-                    {MEAL_CATEGORIES.map((cat) => (
-                      <Pressable
-                        key={cat.type}
-                        onPress={() => setSelectedCategory(cat.type)}
-                        style={[
-                          styles.catBadge,
-                          {
-                            borderColor: selectedCategory === cat.type ? themeColors.primary : themeColors.backgroundSelected,
-                            backgroundColor: selectedCategory === cat.type ? themeColors.primaryLight : 'transparent',
-                          },
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: selectedCategory === cat.type }}
-                        accessibilityLabel={`Selecionar categoria ${cat.label}`}
-                      >
-                        <Text
-                          fontSize={12}
-                          fontWeight="600"
-                          color={selectedCategory === cat.type ? themeColors.primary : themeColors.text}
-                        >
-                          {cat.label}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </XStack>
-                </YStack>
-
-                {/* Food Search Section */}
-                <YStack gap="$two">
-                  <Text fontSize={13} fontWeight="600" color="$textSecondary">Buscar Alimentos</Text>
-                  <XStack position="relative" alignItems="center">
-                    <TInput
-                      borderWidth={1}
-                      borderRadius="$radius.one"
-                      borderColor="$backgroundSelected"
-                      backgroundColor="$backgroundElement"
-                      color="$color"
-                      fontSize={15}
-                      height={44}
-                      paddingHorizontal={12}
-                      paddingLeft={40}
-                      flex={1}
-                      placeholder="Ex: Pão integral, banana, ovo..."
-                      placeholderTextColor={themeColors.textSecondary as any}
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      accessibilityRole="search"
-                      accessibilityLabel="Campo de busca de alimento"
-                    />
-                    <XStack position="absolute" left={12}>
-                      <Search size={16} color={themeColors.textSecondary} />
-                    </XStack>
-                    {searchQuery.length > 0 && (
-                      <Pressable
-                        onPress={() => setSearchQuery('')}
-                        style={styles.clearSearchBtn}
-                        accessibilityLabel="Limpar busca"
-                      >
-                        <X size={16} color={themeColors.textSecondary} />
-                      </Pressable>
-                    )}
-                  </XStack>
-                </YStack>
-
-                {/* Real-time search loader / results */}
-                {isSearching ? (
-                  <XStack py="$four" justifyContent="center" gap="$two">
-                    <ActivityIndicator size="small" color={themeColors.primary} />
-                    <Text fontSize={13} color="$textSecondary">Pesquisando no Open Food Facts...</Text>
-                  </XStack>
-                ) : searchError ? (
-                  <Text fontSize={12} color="#ff4d4f">{searchError}</Text>
-                ) : searchQuery.trim().length > 0 && searchResult.length === 0 ? (
-                  <Text fontSize={13} color="$textSecondary" textAlign="center" py="$three">
-                    Nenhum alimento encontrado.
-                  </Text>
-                ) : (
-                  searchQuery.trim().length > 0 && !selectedFood && (
-                    <YStack gap="$one" borderBottomWidth={1} borderColor="$backgroundSelected" paddingBottom="$two" maxHeight={200}>
-                      <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
-                        {searchResult.map((food, idx) => (
-                          <Pressable
-                            key={idx}
-                            onPress={() => setSelectedFood(food)}
-                            style={({ pressed }) => [
-                              styles.searchResultRow,
-                              { backgroundColor: pressed ? themeColors.backgroundSelected : 'transparent' },
-                            ]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Selecionar ${food.name}`}
-                          >
-                            <YStack flex={1}>
-                              <Text fontSize={14} fontWeight="600" color="$color">
-                                {food.name}
-                              </Text>
-                              <Text fontSize={11} color="$textSecondary">
-                                Carb: {food.carbsPer100g}g  •  Prot: {food.proteinPer100g}g  •  Gord: {food.fatPer100g}g
-                              </Text>
-                            </YStack>
-                            <Text fontSize={12} fontWeight="bold" color="$primary">
-                              {Math.round(food.caloriesPer100g)} kcal/100g
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </YStack>
-                  )
-                )}
-
-                {/* Selected Food Macro Proportional Calculator Details */}
-                {selectedFood && calculatedMacros && (
-                  <Card variant="flat" padding="$three" backgroundColor="$backgroundElement" gap="$three">
-                    <XStack justifyContent="space-between" alignItems="center">
-                      <YStack flex={1} marginRight="$two">
-                        <Text fontSize={11} fontWeight="bold" color="$primary">ALIMENTO SELECIONADO</Text>
-                        <Text fontSize={15} fontWeight="700" color="$color" numberOfLines={1}>
-                          {selectedFood.name}
-                        </Text>
-                      </YStack>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        circular
-                        onPress={() => setSelectedFood(null)}
-                        icon={<X size={16} color={themeColors.textSecondary} />}
-                      />
-                    </XStack>
-
-                    {/* Quantity & Unit Inputs */}
-                    <XStack gap="$three">
-                      <YStack flex={1} gap="$one">
-                        <Text fontSize={12} color="$textSecondary" fontWeight="600">Qtd. Consumida</Text>
-                        <TInput
-                          borderWidth={1}
-                          borderRadius="$radius.one"
-                          borderColor="$backgroundSelected"
-                          backgroundColor="$background"
-                          color="$color"
-                          height={40}
-                          fontSize={14}
-                          keyboardType="numeric"
-                          value={quantity}
-                          onChangeText={setQuantity}
-                          accessibilityLabel="Quantidade consumida"
-                        />
-                      </YStack>
-
-                      <YStack flex={1} gap="$one">
-                        <Text fontSize={12} color="$textSecondary" fontWeight="600">Unidade</Text>
-                        <TInput
-                          borderWidth={1}
-                          borderRadius="$radius.one"
-                          borderColor="$backgroundSelected"
-                          backgroundColor="$background"
-                          color="$color"
-                          height={40}
-                          fontSize={14}
-                          value={unit}
-                          onChangeText={setUnit}
-                          accessibilityLabel="Unidade de medida"
-                        />
-                      </YStack>
-                    </XStack>
-
-                    {/* Interactive Proportional Macros Summary display */}
-                    <YStack gap="$two" borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$two">
-                      <XStack justifyContent="space-between">
-                        <Text fontSize={13} fontWeight="bold" color="$color">Calorias Proporcionais</Text>
-                        <Text fontSize={14} fontWeight="800" color="$primary">
-                          {calculatedMacros.calories} kcal
-                        </Text>
-                      </XStack>
-                      <XStack gap="$three" justifyContent="space-between">
-                        <Text fontSize={11} color="$textSecondary">
-                          Carb: <Text fontWeight="bold" color="$color">{calculatedMacros.carbs}g</Text>
-                        </Text>
-                        <Text fontSize={11} color="$textSecondary">
-                          Prot: <Text fontWeight="bold" color="$color">{calculatedMacros.protein}g</Text>
-                        </Text>
-                        <Text fontSize={11} color="$textSecondary">
-                          Gord: <Text fontWeight="bold" color="$color">{calculatedMacros.fat}g</Text>
-                        </Text>
-                      </XStack>
-                    </YStack>
-
-                    {/* Add to current Meal list button */}
-                    <Button
-                      variant="primary"
-                      size="small"
-                      onPress={handleAddStagedItem}
-                      disabled={(parseFloat(quantity) || 0) <= 0}
-                      icon={<Plus size={14} color="#ffffff" />}
-                      accessibilityLabel="Adicionar alimento à lista da refeição"
-                    >
-                      Adicionar Item
-                    </Button>
-                  </Card>
-                )}
-
-                {/* Staged Items List */}
-                <YStack gap="$two" marginTop="$two">
-                  <Text fontSize={14} fontWeight="bold" color="$color">
-                    Itens Adicionados ({stagedItems.length})
-                  </Text>
-
-                  {stagedItems.length === 0 ? (
-                    <Text fontSize={13} color="$textSecondary" fontStyle="italic">
-                      Nenhum alimento adicionado a esta refeição ainda. Use o campo de busca acima para selecionar e adicionar.
-                    </Text>
-                  ) : (
-                    <YStack gap="$two">
-                      {stagedItems.map((item, idx) => (
-                        <Card key={idx} variant="flat" padding="$two" backgroundColor="$backgroundElement">
-                          <XStack justifyContent="space-between" alignItems="center">
-                            <YStack flex={1} marginRight="$two">
-                              <Text fontSize={14} fontWeight="600" color="$color">
-                                {item.name}
-                              </Text>
-                              <Text fontSize={12} color="$textSecondary">
-                                {item.quantity} {item.unit}  •  {item.calories} kcal
-                              </Text>
-                              <Text fontSize={11} color="$textSecondary">
-                                C: {item.carbs}g • P: {item.protein}g • G: {item.fat}g
-                              </Text>
-                            </YStack>
-                            <Button
-                              variant="ghost"
-                              size="small"
-                              circular
-                              onPress={() => handleRemoveStagedItem(idx)}
-                              icon={<Trash2 size={16} color="#ff4d4f" />}
-                              accessibilityLabel={`Remover ${item.name}`}
-                            />
-                          </XStack>
-                        </Card>
-                      ))}
-
-                      {/* Staged Meal Macros Summary */}
-                      <YStack borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$three" marginTop="$two" gap="$one">
-                        <XStack justifyContent="space-between">
-                          <Text fontSize={14} fontWeight="bold" color="$color">Total da Refeição</Text>
-                          <Text fontSize={15} fontWeight="800" color="$primary">
-                            {stagedTotals.calories} kcal
-                          </Text>
-                        </XStack>
-                        <XStack gap="$three">
-                          <Text fontSize={12} color="$textSecondary">
-                            Carb: <Text fontWeight="bold" color="$color">{stagedTotals.carbs.toFixed(1)}g</Text>
-                          </Text>
-                          <Text fontSize={12} color="$textSecondary">
-                            Prot: <Text fontWeight="bold" color="$color">{stagedTotals.protein.toFixed(1)}g</Text>
-                          </Text>
-                          <Text fontSize={12} color="$textSecondary">
-                            Gord: <Text fontWeight="bold" color="$color">{stagedTotals.fat.toFixed(1)}g</Text>
-                          </Text>
-                        </XStack>
-                      </YStack>
-                    </YStack>
-                  )}
-                </YStack>
-
-              </YStack>
-            </ScrollView>
-
-            {/* Modal Bottom Actions */}
-            <XStack gap="$three" borderTopWidth={1} borderColor="$backgroundSelected" paddingTop="$three" marginTop="$three">
-              <Button
-                variant="outline"
-                flex={1}
-                onPress={() => {
-                  setIsModalOpen(false);
-                  setStagedItems([]);
-                  setSelectedFood(null);
-                  setSearchQuery('');
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                flex={1}
-                disabled={stagedItems.length === 0}
-                isLoading={isLoading}
-                onPress={handleSaveMeal}
-                icon={<Check size={18} color="#ffffff" />}
-                accessibilityLabel="Confirmar registro da refeição inteira"
-              >
-                Salvar Refeição
-              </Button>
-            </XStack>
-
-          </YStack>
-        </SafeAreaView>
+      <Modal visible={showSearch} animationType="slide">
+        <FoodSearch 
+          onClose={() => setShowSearch(false)}
+          onAddMeal={handleAddMeal}
+        />
       </Modal>
-
-    </SafeAreaView>
-    </>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 60,
   },
   scrollContent: {
-    flexGrow: 1,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingBottom: 100,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+  header: {
+    marginBottom: Theme.spacing.lg,
   },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+  title: {
+    fontFamily: Theme.typography.fonts.black,
+    fontSize: Theme.typography.sizes.xxl,
+    color: Theme.colors.text,
   },
-  catBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 4,
-    marginBottom: 4,
+  subtitle: {
+    fontFamily: Theme.typography.fonts.medium,
+    fontSize: Theme.typography.sizes.md,
+    color: Theme.colors.primary,
   },
-  clearSearchBtn: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
+  summaryCard: {
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.lg,
   },
-  searchResultRow: {
+  summaryTitle: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.lg,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.sm,
+  },
+  caloriesRow: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+  caloriesText: {
+    fontFamily: Theme.typography.fonts.black,
+    fontSize: 32,
+    color: Theme.colors.primary,
+  },
+  caloriesLabel: {
+    fontFamily: Theme.typography.fonts.regular,
+    fontSize: Theme.typography.sizes.sm,
+    color: Theme.colors.textSecondary,
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  macroContainer: {
+    alignItems: 'center',
+  },
+  macroValue: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: 10,
+    color: Theme.colors.text,
+  },
+  macroLabel: {
+    fontFamily: Theme.typography.fonts.medium,
+    fontSize: 10,
+    color: Theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  addBtn: {
+    marginBottom: Theme.spacing.xl,
+  },
+  mealSection: {
+    marginBottom: Theme.spacing.lg,
+  },
+  mealSectionTitle: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.md,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingBottom: 4,
+  },
+  mealItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 0.5,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    padding: Theme.spacing.md,
+    borderRadius: Theme.borderRadius.sm,
+    marginBottom: 8,
   },
+  mealInfo: {
+    flex: 1,
+  },
+  mealName: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.md,
+    color: Theme.colors.text,
+    marginBottom: 2,
+  },
+  mealDetails: {
+    fontFamily: Theme.typography.fonts.regular,
+    fontSize: Theme.typography.sizes.sm,
+    color: Theme.colors.textSecondary,
+  }
 });

@@ -1,50 +1,66 @@
-# Research: Acompanhamento Fitness
+# Research: Monitoramento de Ocupação da Academia
 
-## Decision: STACK & CONFIGURAÇÕES DE UI
+**Feature**: Tela de ocupação em tempo real  
+**Date**: 2026-06-04
 
-1. **Biblioteca de Estilização**: Tamagui (pacotes `tamagui` e `@tamagui/config`) integrada com a configuração em `src/tamagui.config.ts`.
-2. **Design Tokens**: Mapear as constantes existentes em `src/constants/theme.ts` (cores, tipografia, espaçamento) diretamente para os tokens e temas do Tamagui para garantir a fidelidade ao design system.
-3. **Ícones**: Uso exclusivo do `expo-symbols` para ícones nativos, evitando carregar bibliotecas externas pesadas.
-4. **Animações**: Utilizar `react-native-reanimated` e `react-native-gesture-handler` para transições suaves e interações gestuais nativas.
+## 1. Biblioteca de Gráficos
 
-### Rationale
+**Decision**: `react-native-gifted-charts`  
+**Rationale**: Única biblioteca que possui TODAS as peer dependencies já instaladas no projeto (`react-native-svg`, `expo-linear-gradient`). Ativamente mantida, suporta bar charts e line charts, funciona em Expo managed workflow.  
+**Alternatives Considered**:
+- `Victory Native`: Maior bundle, problemas de resolução "exports" no Metro
+- `react-native-chart-kit`: Legado, crashs reportados no Android com SDKs recentes
+- `react-native-wagmi-charts`: Requer `react-native-haptic-feedback` (não instalado), foco em dados financeiros
 
-- **Tamagui**: Fornece um compilador otimizado de estilo que unifica a experiência nativa e web, com suporte a temas dinâmicos (claro/escuro) e layout flexível, sem o overhead de estilização runtime pesada.
-- **Mapeamento de Tokens**: Garantir que as cores (como `#F0F0F3` e `#212225`) definidas no tema original sejam propagadas em todos os componentes atômicos (Button, Input, Card) via tokens do Tamagui.
-- **expo-symbols**: Solução nativa de ícones do Expo 56 que consome recursos nativos eficientemente (SF Symbols no iOS, e fontes equivalentes no Android/Web).
+## 2. Modelo de Dados de Ocupação
 
-### Alternatives Considered
+**Decision**: Criar tabela `OccupancyReading` com leituras periódicas (a cada 15 minutos)  
+**Rationale**: Permite construir tanto o gráfico de linha (histórico do dia) quanto calcular médias para previsão. Cada leitura armazena o timestamp e a contagem de pessoas.  
+**Alternatives Considered**:
+- WebSocket em tempo real: Complexidade excessiva para MVP, o polling a cada 30s atende ao requisito de "tempo real" para o contexto de academia
+- Armazenar apenas o valor atual: Impossibilitaria a construção do gráfico de linha histórico
 
-- **NativeWind**: Descartado em favor do Tamagui, atendendo à solicitação explícita do usuário de Stack.
-- **Bibliotecas de Ícones de Terceiros (ex. lucide-react-native)**: Descartadas para manter o projeto leve e alinhado ao ecossistema nativo padrão do Expo (`expo-symbols`).
+## 3. Previsão de Ocupação
 
----
+**Decision**: Média simples baseada nas últimas 4 semanas para o mesmo dia da semana/horário  
+**Rationale**: Academias possuem padrões muito regulares por dia da semana. Uma média simples das últimas 4 semanas já fornece previsão confiável sem ML.  
+**Alternatives Considered**:
+- Machine Learning: Overengineering para MVP
+- Sem previsão: O usuário pediu explicitamente "previsão para as próximas horas"
 
-## Decision: ARQUITETURA E GERENCIAMENTO DE ESTADO
+## 4. Níveis de Ocupação
 
-1. **Estado do Aplicativo**: Sem uso de gerenciadores de estado global (Redux, Zustand ou Context API para lógica de negócio). Todo estado é local e encapsulado em **Hooks Customizados** (`src/hooks/`).
-2. **Clientes de Rede**: Criar um cliente HTTP em `src/services/api.ts` usando a Fetch API nativa configurada com a baseURL do Peaktime Backend e interceptação para injetar o header `Authorization: Bearer <token>`.
-3. **Armazenamento de Sessão**: Armazenamento seguro de tokens JWT usando `expo-secure-store` em `src/services/storage.ts`.
+**Decision**: 5 níveis baseados em percentual da capacidade máxima  
+**Rationale**: O usuário definiu exatamente 5 níveis: Vazio, Tranquilo, Moderado, Cheio, Lotado  
 
-### Rationale
+| Nível | Faixa | Cor |
+|-------|-------|-----|
+| Vazio | 0-15% | `#64FFDA` (primary/cyan) |
+| Tranquilo | 16-35% | `#00E676` (success/green) |
+| Moderado | 36-60% | `#FFC107` (amber) |
+| Cheio | 61-85% | `#FF9800` (orange) |
+| Lotado | 86-100% | `#FF4081` (accent/pink) |
 
-- **Hooks Customizados**: A UI permanece 100% livre de lógica de rede ou manipulação complexa de dados. O estado e a chamada assíncrona ficam isolados no hook, expondo apenas dados formatados, estados de loading, erro e funções de ação (como login, logout, concluir treino).
-- **Sem Estado Global**: Como o aplicativo é direcionado a fluxos independentes de tela e sincronização com backend em tempo real, gerenciar estado via hooks locais focados evita acoplamento desnecessário de dados e simplifica o comportamento do app.
+## 5. Capacidade Máxima
 
-### Alternatives Considered
+**Decision**: Armazenar como configuração da academia (valor fixo editável pelo admin/professor)  
+**Rationale**: Academias possuem capacidade máxima definida por regulamento. Deve ser configurável.  
+**Alternatives Considered**:
+- Hardcoded: Inflexível; cada academia pode ter capacidade diferente
+- Variável de ambiente: Não acessível para o professor alterar
 
-- **Zustand**: Descartado por requisição explícita do usuário de manter estado local com hooks, o que ajuda a isolar ciclos de vida das telas.
-- **Axios**: Avaliado, mas optou-se pela Fetch API para diminuir o tamanho final do bundle nativo, mantendo a flexibilidade de wrappers.
+## 6. Endpoint de Dados
 
----
+**Decision**: API REST com polling a cada 30 segundos no frontend  
+**Rationale**: Simples, segue o padrão existente da API. O polling a cada 30s é suficiente para monitoramento de ocupação de academia (não é um dashboard de bolsa de valores).  
+**Alternatives Considered**:
+- WebSocket: Complexidade adicional no Fastify e no frontend; não justificada para a granularidade necessária
+- Server-Sent Events: Suporte irregular no React Native
 
-## Decision: ARQUITETURA DE ROTAS E NAVEGAÇÃO
+## 7. Roteamento da Tela
 
-1. **Expo Router**: Fluxo de rotas baseados em arquivos sob `src/app/`, com separação estruturada por diretórios de grupos de rotas com parênteses:
-   - `(auth)`: Login e Cadastro (telas públicas).
-   - `(student)`: Área do Aluno (layout em tabs).
-   - `(professor)`: Área do Professor (layout em tabs).
-
-### Rationale
-
-- **Expo Router Groups**: Garante que os fluxos de navegação permaneçam completamente isolados visualmente e logicamente. Impede que um aluno acesse acidentalmente telas de professores e vice-versa, permitindo configurar layouts de abas (`Tab.Navigator`) específicos para cada papel.
+**Decision**: Nova rota `occupancy.tsx` nos grupos `(student)` e `(professor)` com tab dedicada  
+**Rationale**: Ambos os tipos de usuário se beneficiam de ver a ocupação. Compartilham o mesmo componente base.  
+**Alternatives Considered**:
+- Tela única fora dos grupos: Quebraria o padrão de roteamento Expo Router do projeto
+- Modal overlay: A quantidade de conteúdo (2 gráficos + card + legenda) justifica uma tela completa

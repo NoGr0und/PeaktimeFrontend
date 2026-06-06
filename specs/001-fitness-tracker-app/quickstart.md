@@ -1,63 +1,61 @@
-# Quickstart: Acompanhamento Fitness
+# Quickstart: Monitoramento de Ocupação
 
-Este guia descreve os passos necessários para configurar as novas dependências do projeto e executar a aplicação Peaktime Frontend localmente.
+## Pré-requisitos
 
----
+- Node.js 18+
+- Expo CLI (`npx expo`)
+- Backend Peaktime rodando em `localhost:3333`
+- PostgreSQL com Prisma migrations aplicadas
 
-## 📦 1. Instalar Novas Dependências
+## Setup
 
-Para habilitar a estilização otimizada com o **Tamagui** e o armazenamento seguro local com o **Expo SecureStore**, execute os seguintes comandos no diretório raiz do projeto:
-
-```bash
-# Instalar os pacotes essenciais do Tamagui
-npm install tamagui @tamagui/config @tamagui/lucide-icons
-
-# Instalar o SecureStore oficial do Expo (compatível com a versão instalada do SDK 56)
-npx expo install expo-secure-store
-```
-
----
-
-## ⚙️ 2. Configurar o Tamagui
-
-Crie o arquivo de configuração `src/tamagui.config.ts` importando os tokens definidos em `src/constants/theme.ts`.
-
----
-
-## 🚀 3. Executar o Projeto em Desenvolvimento
-
-Inicie o servidor de desenvolvimento do Expo:
+### 1. Instalar dependência de gráficos
 
 ```bash
-# Executa o Metro Bundler interativo
-npx expo start
+cd PeaktimeFrontend
+npx expo install react-native-gifted-charts
 ```
 
-### Comandos úteis:
--   **Abrir no Android**: Pressione `a` (requer emulador aberto ou dispositivo conectado).
--   **Abrir no iOS**: Pressione `i` (requer Mac com Xcode e simulador de iOS configurado).
--   **Abrir na Web**: Pressione `w` (inicia a compilação web e abre o navegador).
-
----
-
-## 🏗️ 4. Build e Produção
-
-### Versão Web (Estática)
-Para empacotar a versão Web otimizada para deploy em CDNs (como Vercel, Netlify):
+### 2. Aplicar migration do banco
 
 ```bash
-npx expo export --platform web
+cd "Peaktime Backend"
+npx prisma migrate dev --name add-occupancy-reading
 ```
-Os arquivos gerados serão salvos no diretório `dist/` e podem ser servidos de forma 100% estática.
 
-### Aplicativos Nativos (Android / iOS)
-Para compilar os pacotes binários nativos (`.apk`/`.aab` ou `.ipa`) usando o EAS Build:
+### 3. Rodar o projeto
 
 ```bash
-# Build de desenvolvimento (para testar em emuladores/dispositivos com suporte a logs)
-eas build --profile development
+# Terminal 1 — Backend
+cd "Peaktime Backend"
+npm run dev
 
-# Build de produção (pronto para envio às lojas de aplicativo)
-eas build --profile production
+# Terminal 2 — Frontend
+cd PeaktimeFrontend
+npx expo start --web
 ```
-*(Certifique-se de estar autenticado com a conta Expo através do comando `eas login` antes de rodar os builds nativos)*.
+
+## Verificação
+
+1. Abrir `http://localhost:8081` no navegador
+2. Logar como aluno ou professor
+3. Navegar até a aba de **Ocupação** (ícone de pessoas)
+4. Verificar se o card principal, gráficos e legenda estão renderizando
+
+## Dados de Teste
+
+Para popular dados simulados de ocupação, faça POST via curl:
+
+```bash
+# Registrar leitura atual (como professor)
+curl -X POST http://localhost:3333/api/occupancy/readings \
+  -H "Authorization: Bearer <TOKEN_PROFESSOR>" \
+  -H "Content-Type: application/json" \
+  -d '{"count": 42, "capacity": 80}'
+```
+
+## Notas
+
+- A tela faz polling automático a cada 30 segundos
+- Previsão é calculada com base nas últimas 4 semanas do mesmo dia da semana
+- Sem dados históricos, o gráfico de previsão mostrará valores zerados

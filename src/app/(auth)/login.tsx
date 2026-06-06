@@ -1,196 +1,103 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
-import { YStack, XStack, Text, H1 } from 'tamagui';
-import { useRouter } from 'expo-router';
-import Head from 'expo-router/head';
-import { SymbolView } from 'expo-symbols';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
-import { useTheme } from '@/hooks/use-theme';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Theme } from '../../constants/theme';
+import { authService } from '../../services/authService';
+import { useAuth } from '../../services/AuthContext';
+import { MotiView } from 'moti';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
-  const theme = useTheme();
-  const router = useRouter();
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { signIn } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Por favor, preencha todos os campos.');
+      Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
 
-    setError(null);
-    setIsLoading(true);
-
     try {
-      await login(email.trim(), password);
-      // RootNavigation guard in _layout.tsx will handle redirect automatically
-    } catch (e: any) {
-      setError(e?.message || 'Falha ao realizar login. Verifique suas credenciais.');
+      setIsLoading(true);
+      const user = await authService.login(email, password);
+      signIn(user);
+    } catch (error) {
+      Alert.alert('Erro', 'E-mail ou senha incorretos');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <Head>
-        <title>Acesse sua Conta - Peaktime</title>
-        <meta name="description" content="Faça login no Peaktime para acompanhar seus treinos e dieta personalizados." />
-      </Head>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundElement }]} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <LinearGradient
+        colors={[Theme.colors.background, Theme.colors.surface]}
+        style={styles.container}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <YStack gap="$five" width="100%" maxWidth={450} alignSelf="center">
-            {/* Header / Logo section */}
-            <YStack alignItems="center" gap="$two" marginTop="$five">
-              <XStack
-                backgroundColor="$primary"
-                width={64}
-                height={64}
-                borderRadius={18}
-                justifyContent="center"
-                alignItems="center"
-                shadowColor={theme.primary}
-                shadowOffset={{ width: 0, height: 4 }}
-                shadowOpacity={0.2}
-                shadowRadius={8}
-                elevation={4}
-              >
-                <SymbolView
-                  name={{ ios: 'bolt.fill', android: 'flash_on', web: 'bolt' }}
-                  size={32}
-                  tintColor="#ffffff"
-                />
-              </XStack>
-              <H1 fontSize={32} fontWeight="800" color="$color" letterSpacing={-0.5} marginTop="$two">
-                Peak<Text color="$primary">time</Text>
-              </H1>
-              <Text fontSize={16} color="$textSecondary" textAlign="center">
-                Seu app de acompanhamento fitness personalizado
-              </Text>
-            </YStack>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <MotiView
+            from={{ opacity: 0, translateY: 50 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 1000 }}
+            style={styles.headerContainer}
+          >
+            <Text style={styles.title}>PEAK<Text style={{ color: Theme.colors.primary }}>TIME</Text></Text>
+            <Text style={styles.subtitle}>Find your strength</Text>
+          </MotiView>
 
-            {/* Login Card */}
-            <Card variant="elevated" padding="$five" gap="$four">
-              <YStack gap="$two">
-                <Text fontSize={20} fontWeight="700" color="$color">
-                  Acesse sua conta
-                </Text>
-                <Text fontSize={14} color="$textSecondary">
-                  Insira suas credenciais para continuar
-                </Text>
-              </YStack>
-
-              {error && (
-                <XStack
-                  backgroundColor="#fff2f0"
-                  borderColor="#ffccc7"
-                  borderWidth={1}
-                  borderRadius="$radius.one"
-                  padding="$three"
-                  alignItems="center"
-                  gap="$two"
-                >
-                  <SymbolView
-                    name={{ ios: 'exclamationmark.circle.fill', android: 'error', web: 'error' }}
-                    size={18}
-                    tintColor="#ff4d4f"
-                  />
-                  <Text fontSize={13} color="#ff4d4f" flex={1}>
-                    {error}
-                  </Text>
-                </XStack>
-              )}
-
-              <YStack gap="$three">
-                <Input
-                  label="E-mail"
-                  placeholder="exemplo@email.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={(val) => {
-                    setEmail(val);
-                    if (error) setError(null);
-                  }}
-                  leftIcon={
-                    <SymbolView
-                      name={{ ios: 'envelope', android: 'mail', web: 'mail' }}
-                      size={18}
-                      tintColor={theme.textSecondary}
-                    />
-                  }
-                  accessibilityLabel="Campo de e-mail"
-                />
-
-                <Input
-                  label="Senha"
-                  placeholder="Sua senha segura"
-                  isPassword
-                  value={password}
-                  onChangeText={(val) => {
-                    setPassword(val);
-                    if (error) setError(null);
-                  }}
-                  leftIcon={
-                    <SymbolView
-                      name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                      size={18}
-                      tintColor={theme.textSecondary}
-                    />
-                  }
-                  accessibilityLabel="Campo de senha"
-                />
-              </YStack>
-
-              <Button
-                variant="primary"
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 800, delay: 400 }}
+            style={styles.formContainer}
+          >
+            <Card glass style={styles.card}>
+              <Text style={styles.cardTitle}>Bem-vindo de volta</Text>
+              
+              <Input
+                label="E-mail"
+                placeholder="seu@email.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              
+              <Input
+                label="Senha"
+                placeholder="********"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+              
+              <Button 
+                title="Entrar" 
+                onPress={handleLogin} 
                 isLoading={isLoading}
-                onPress={handleLogin}
-                marginTop="$two"
-                accessibilityLabel="Botão de entrar"
-              >
-                Entrar
-              </Button>
+                style={styles.button}
+              />
+              
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Ainda não tem conta? </Text>
+                <Link href="/(auth)/register" asChild>
+                  <Text style={styles.registerLink}>Cadastre-se</Text>
+                </Link>
+              </View>
             </Card>
-
-            {/* Footer Sign Up Link */}
-            <XStack justifyContent="center" alignItems="center" gap="$one" marginBottom="$five">
-              <Text fontSize={14} color="$textSecondary">
-                Não tem uma conta?
-              </Text>
-              <Button
-                variant="ghost"
-                size="small"
-                padding={0}
-                onPress={() => router.push('/(auth)/register' as any)}
-                accessibilityLabel="Ir para tela de cadastro"
-              >
-                Cadastre-se
-              </Button>
-            </XStack>
-          </YStack>
+          </MotiView>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-    </>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -198,13 +105,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    padding: Theme.spacing.xl,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: Theme.spacing.xxl,
+  },
+  title: {
+    fontFamily: Theme.typography.fonts.black,
+    fontSize: Theme.typography.sizes.xxxl,
+    color: Theme.colors.text,
+    letterSpacing: 2,
+  },
+  subtitle: {
+    fontFamily: Theme.typography.fonts.medium,
+    fontSize: Theme.typography.sizes.md,
+    color: Theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  formContainer: {
+    width: '100%',
+  },
+  card: {
+    padding: Theme.spacing.lg,
+  },
+  cardTitle: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.xl,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.lg,
+    textAlign: 'center',
+  },
+  button: {
+    marginTop: Theme.spacing.md,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: Theme.spacing.lg,
+  },
+  registerText: {
+    color: Theme.colors.textSecondary,
+    fontFamily: Theme.typography.fonts.regular,
+  },
+  registerLink: {
+    color: Theme.colors.primary,
+    fontFamily: Theme.typography.fonts.bold,
   },
 });

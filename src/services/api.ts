@@ -1,104 +1,88 @@
-import { getAccessToken, clearSession } from './storage';
+import { storage } from './storage';
+import { Platform } from 'react-native';
 
-// Base URL of the Peaktime Backend API
-export const API_BASE_URL = 'http://localhost:3333';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string>;
+interface ApiOptions extends RequestInit {
+  data?: any;
 }
 
-export class APIError extends Error {
+export class ApiError extends Error {
   status: number;
-  code?: string;
+  data: any;
 
-  constructor(message: string, status: number, code?: string) {
-    super(message);
-    this.name = 'APIError';
+  constructor(status: number, data: any, message?: string) {
+    super(message || 'API Error');
     this.status = status;
-    this.code = code;
+    this.data = data;
+    this.name = 'ApiError';
   }
-}
-
-async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { params, headers, ...restOptions } = options;
-
-  // Construct URL with query parameters
-  let url = `${API_BASE_URL}${endpoint}`;
-  if (params) {
-    const searchParams = new URLSearchParams(params);
-    url += `?${searchParams.toString()}`;
-  }
-
-  // Set default headers
-  const defaultHeaders: Record<string, string> = {
-    Accept: 'application/json',
-  };
-
-  const method = restOptions.method || 'GET';
-  if (method !== 'GET' && method !== 'DELETE' && restOptions.body !== undefined) {
-    defaultHeaders['Content-Type'] = 'application/json';
-  }
-
-  // Get token and inject if exists
-  const token = await getAccessToken();
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
-  }
-
-  const mergedHeaders = {
-    ...defaultHeaders,
-    ...headers,
-  };
-
-  const response = await fetch(url, {
-    headers: mergedHeaders,
-    ...restOptions,
-  });
-
-  // Handle unauthorized responses (401)
-  if (response.status === 401) {
-    await clearSession();
-  }
-
-  let data: any;
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
-  } else {
-    data = await response.text();
-  }
-
-  if (!response.ok) {
-    const errorMessage = data?.message || data?.error || 'Ocorreu um erro no servidor';
-    const errorCode = data?.code || null;
-    throw new APIError(errorMessage, response.status, errorCode);
-  }
-
-  return data as T;
 }
 
 export const api = {
-  get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
-    return request<T>(endpoint, { method: 'GET', ...options });
-  },
+  async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+    const token = await storage.getItemAsync('access_token');
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...((options.headers as Record<string, string>) || {}),
+    };
 
-  post<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
-    return request<T>(endpoint, {
-      method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const config: RequestInit = {
       ...options,
-    });
+      headers,
+    };
+
+    if (options.data) {
+      config.body = JSON.stringify(options.data);
+    }
+
+    // Determine correct URL based on platform if testing locally
+    let url = `${API_URL}${endpoint}`;
+    if (API_URL.includes('localhost') && Platform.OS === 'android') {
+      url = url.replace('localhost', '10.0.2.2');
+    }
+
+    try {
+      const response = await fetch(url, config);
+      const isJson = response.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await response.json() : await response.text();
+
+      if (!response.ok) {
+        throw new ApiError(response.status, data, data.message || 'An error occurred');
+      }
+
+      return data as T;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new Error(error instanceof Error ? error.message : 'Network error');
+    }
   },
 
-  put<T>(endpoint: string, body?: any, options?: RequestOptions): Promise<T> {
-    return request<T>(endpoint, {
-      method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
-      ...options,
-    });
+  get<T>(endpoint: string, options?: Omit<ApiOptions, 'body' | 'method'>) {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
   },
 
-  delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
-    return request<T>(endpoint, { method: 'DELETE', ...options });
+  post<T>(endpoint: string, data?: any, options?: Omit<ApiOptions, 'body' | 'method'>) {
+    return this.request<T>(endpoint, { ...options, method: 'POST', data });
+  },
+
+  put<T>(endpoint: string, data?: any, options?: Omit<ApiOptions, 'body' | 'method'>) {
+    return this.request<T>(endpoint, { ...options, method: 'PUT', data });
+  },
+
+  patch<T>(endpoint: string, data?: any, options?: Omit<ApiOptions, 'body' | 'method'>) {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', data });
+  },
+
+  delete<T>(endpoint: string, options?: Omit<ApiOptions, 'body' | 'method'>) {
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   },
 };
