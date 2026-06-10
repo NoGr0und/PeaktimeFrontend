@@ -1,7 +1,7 @@
-import { storage } from './storage';
 import { Platform } from 'react-native';
+import { storage } from './storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3333/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3333/api';
 
 interface ApiOptions extends RequestInit {
   data?: any;
@@ -26,6 +26,8 @@ export const api = {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      // 2. Proteção para evitar o bloqueio do Localtunnel (se voltares a usar)
+      'Bypass-Tunnel-Reminder': 'true', 
       ...((options.headers as Record<string, string>) || {}),
     };
 

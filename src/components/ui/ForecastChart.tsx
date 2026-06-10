@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
-import { BarChart } from 'react-native-gifted-charts';
+import { Dimensions, Platform, StyleSheet, Text, View } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts'; // Mudamos de BarChart para LineChart
 import { Theme } from '../../constants/theme';
 import { OccupancyForecastResponse } from '../../types/occupancy';
 
@@ -14,21 +14,16 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ data }) => {
   const chartData = useMemo(() => {
     if (!data || !data.forecast) return [];
     
-    // Pegar apenas as próximas 6 horas (ou quantas houver)
+    // Pegar as próximas horas configuradas
     const nextHours = data.forecast.slice(0, 6);
     
     return nextHours.map((reading) => {
-      let color = Theme.colors.occupancy.empty;
-      
-      if (reading.percentage > 85) color = Theme.colors.occupancy.full;
-      else if (reading.percentage > 60) color = Theme.colors.occupancy.busy;
-      else if (reading.percentage > 35) color = Theme.colors.occupancy.moderate;
-      else if (reading.percentage > 15) color = Theme.colors.occupancy.quiet;
-
       return {
         value: reading.avgCount,
         label: `${reading.hour}h`,
-        frontColor: color,
+        // Configuração visual dos pontos flutuantes da linha
+        dataPointColor: Theme.colors.primary,
+        dataPointRadius: 4,
       };
     });
   }, [data]);
@@ -38,7 +33,7 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ data }) => {
       <View style={styles.container}>
         <Text style={styles.title}>Previsão (Próximas Horas)</Text>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Gráfico de barras indisponível na Web.</Text>
+          <Text style={styles.emptyText}>Gráfico de linha indisponível na Web.</Text>
         </View>
       </View>
     );
@@ -56,19 +51,18 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({ data }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Previsão (Próximas Horas)</Text>
       <View style={styles.chartWrapper}>
-        <BarChart
+        <LineChart
           data={chartData}
           width={screenWidth - 80}
           height={180}
-          barWidth={22}
-          spacing={28}
-          initialSpacing={10}
+          color={Theme.colors.primary} // Cor da linha principal
+          thickness={3}               // Espessura da linha
+          curved                      // Deixa a linha suave/ondulada igual ao de cima
           yAxisTextStyle={{ color: Theme.colors.textSecondary, fontSize: 10 }}
           xAxisLabelTextStyle={{ color: Theme.colors.textSecondary, fontSize: 10 }}
           yAxisColor={Theme.colors.border}
           xAxisColor={Theme.colors.border}
           hideRules
-          barBorderRadius={4}
           isAnimated
           maxValue={data.capacity}
           noOfSections={4}
