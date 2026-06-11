@@ -7,9 +7,14 @@ import { WorkoutList } from '../../components/ui/WorkoutList';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { useAuth } from '../../services/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MotiView, AnimatePresence } from 'moti';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Skeleton } from 'moti/skeleton';
+import * as Haptics from 'expo-haptics';
+import LottieView from 'lottie-react-native';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -26,9 +31,9 @@ const DAYS_OF_WEEK = [
 export default function DashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [dashboardData, setDashboardData] = useState<WeeklyDashboardResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   
   // Carousel state
   const todayIndex = new Date().getDay();
@@ -36,39 +41,38 @@ export default function DashboardScreen() {
   const [selectedDay, setSelectedDay] = useState<string>(initialDayId);
   const scrollRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['weeklyDashboard'],
+    queryFn: () => workoutService.getWeeklyDashboard(),
+  });
 
-  const loadDashboard = async () => {
-    try {
-      const data = await workoutService.getWeeklyDashboard();
-      setDashboardData(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleComplete = async (dayPlanId: string) => {
-    try {
-      setCompletingId(dayPlanId);
-      const res = await workoutService.completeWorkout(dayPlanId, new Date().toISOString());
-      
-      if (dashboardData) {
-        setDashboardData({
-          ...dashboardData,
-          completions: [...dashboardData.completions, res]
-        });
+  const completeMutation = useMutation({
+    mutationFn: (dayPlanId: string) => workoutService.completeWorkout(dayPlanId, new Date().toISOString()),
+    onSuccess: (newCompletion) => {
+      queryClient.setQueryData<WeeklyDashboardResponse | null>(['weeklyDashboard'], (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          completions: [...oldData.completions, newCompletion],
+        };
+      });
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
-      Alert.alert('Parabéns!', 'Treino finalizado com sucesso!');
-    } catch (error) {
+      setShowSuccessAnim(true);
+      setTimeout(() => setShowSuccessAnim(false), 2500);
+    },
+    onError: () => {
       Alert.alert('Aviso', 'Este treino já foi concluído hoje, ou houve uma falha.');
-    } finally {
+    },
+    onSettled: () => {
       setCompletingId(null);
     }
+  });
+
+  const handleComplete = (dayPlanId: string) => {
+    setCompletingId(dayPlanId);
+    completeMutation.mutate(dayPlanId);
   };
 
   const getGreeting = () => {
@@ -77,6 +81,8 @@ export default function DashboardScreen() {
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
   };
+
+  const streakCount = dashboardData?.completions.length || 0;
 
   const getWeekDayOrder = (idx: number) => idx === 0 ? 7 : idx;
 
@@ -263,10 +269,25 @@ export default function DashboardScreen() {
 
   return (
     <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+      {/* Animated ECG Pulse Background for Fitness Theme */}
+      <AnimatedBackground iconName="weight-lifter" />
+
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.name}>{user?.name?.split(' ')[0]}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{user?.name?.split(' ')[0]}</Text>
+            {streakCount > 0 && (
+              <MotiView 
+                from={{ scale: 0 }} animate={{ scale: 1 }} 
+                transition={{ type: 'spring', damping: 10 }}
+                style={styles.streakBadge}
+              >
+                <Text style={styles.streakIcon}>🔥</Text>
+                <Text style={styles.streakText}>{streakCount}</Text>
+              </MotiView>
+            )}
+          </View>
         </View>
         <Button 
           title="+ Criar Treino" 
@@ -282,8 +303,12 @@ export default function DashboardScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={Theme.colors.primary} size="large" />
+          <View style={{ padding: Theme.spacing.lg }}>
+            <Skeleton colorMode="dark" width="100%" height={80} radius={12} />
+            <View style={{ height: 16 }} />
+            <Skeleton colorMode="dark" width="100%" height={200} radius={12} />
+            <View style={{ height: 16 }} />
+            <Skeleton colorMode="dark" width="100%" height={60} radius={8} />
           </View>
         ) : (
           <View>
@@ -302,6 +327,18 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+
+      {showSuccessAnim && (
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <LottieView
+            autoPlay
+            loop={false}
+            source={{ uri: 'https://lottie.host/80cce22b-2e92-411a-821f-8ba53a8ceb41/LDEs5PZ8Jp.json' }}
+            style={{ width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)' }}
+            onAnimationFinish={() => setShowSuccessAnim(false)}
+          />
+        </View>
+      )}
     </LinearGradient>
   );
 }
@@ -327,6 +364,30 @@ const styles = StyleSheet.create({
     fontFamily: Theme.typography.fonts.black,
     fontSize: Theme.typography.sizes.xxl,
     color: Theme.colors.text,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  streakIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  streakText: {
+    fontFamily: Theme.typography.fonts.bold,
+    color: '#FF6B6B',
+    fontSize: Theme.typography.sizes.sm,
   },
   createBtn: {
     paddingHorizontal: 12,

@@ -6,9 +6,13 @@ import { Button } from '../../components/ui/Button';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../services/AuthContext';
 import { MotiView } from 'moti';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function ProfessorProfileScreen() {
   const { user, signOut } = useAuth();
+  const router = useRouter();
 
   const handleLogout = async () => {
     await signOut();
@@ -17,6 +21,7 @@ export default function ProfessorProfileScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+        <AnimatedBackground variant="profile-pulse" iconName="shield-account" />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Meu Perfil</Text>
@@ -43,12 +48,22 @@ export default function ProfessorProfileScreen() {
                 </View>
               </View>
               
-              <Button 
-                title="Sair da Conta" 
-                variant="outline" 
-                onPress={handleLogout} 
-                style={styles.logoutButton}
-              />
+              <View style={styles.actionsContainer}>
+                <Button
+                  title="Informações / Editar Conta"
+                  onPress={() => router.push('/edit-profile')}
+                  variant="outline"
+                  style={styles.actionButton}
+                  icon={<MaterialCommunityIcons name="account-edit" size={20} color={Theme.colors.primary} style={{ marginRight: 8 }} />}
+                />
+                <Button
+                  title="Sair da Conta"
+                  onPress={handleLogout}
+                  variant="outline"
+                  style={[styles.actionButton, styles.logoutButton]}
+                  textStyle={styles.logoutText}
+                />
+              </View>
             </Card>
           </MotiView>
         </ScrollView>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/ui/Card';
@@ -8,53 +8,94 @@ import { Theme } from '../../constants/theme';
 import { enrollmentService, ProfessorEnrollment } from '../../services/enrollmentService';
 import { useAuth } from '../../services/AuthContext';
 import { MotiView } from 'moti';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, signOut } = useAuth();
   const [code, setCode] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [professor, setProfessor] = useState<ProfessorEnrollment | null>(null);
 
-  useEffect(() => {
-    checkEnrollment();
-  }, []);
+  const { data: professorInfo, isLoading: isProfLoading } = useQuery({
+    queryKey: ['myProfessor'],
+    queryFn: () => enrollmentService.getProfessor(),
+  });
 
-  const checkEnrollment = async () => {
-    const prof = await enrollmentService.getProfessor();
-    setProfessor(prof);
-  };
+  const joinMutation = useMutation({
+    mutationFn: (inviteCode: string) => enrollmentService.joinProfessor(inviteCode),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myProfessor'] });
+      Alert.alert('Sucesso', 'Vinculado ao professor com sucesso!');
+    },
+    onError: () => {
+      Alert.alert('Erro', 'Código inválido ou expirado.');
+    }
+  });
 
-  const handleJoin = async () => {
+  const handleJoin = () => {
     if (!code || code.length !== 6) {
-      Alert.alert('Erro', 'O código deve ter exatamente 6 caracteres.');
+      if (Platform.OS === 'web') {
+        window.alert('O código deve ter exatamente 6 caracteres.');
+      } else {
+        Alert.alert('Erro', 'O código deve ter exatamente 6 caracteres.');
+      }
       return;
     }
-
-    try {
-      setIsLoading(true);
-      await enrollmentService.joinProfessor(code);
-      
-      const prof = await enrollmentService.getProfessor();
-      setProfessor(prof);
-      
-      Alert.alert('Sucesso', 'Vinculado ao professor com sucesso!');
-    } catch (error) {
-      Alert.alert('Erro', 'Código inválido ou expirado.');
-    } finally {
-      setIsLoading(false);
-    }
+    joinMutation.mutate(code);
   };
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleUnenroll = () => {
+    if (!professorInfo) return;
+
+    const performUnenroll = async () => {
+      try {
+        await enrollmentService.unenroll(professorInfo.id);
+        queryClient.invalidateQueries({ queryKey: ['myProfessor'] });
+        if (Platform.OS === 'web') {
+          window.alert('Professor desvinculado com sucesso.');
+        } else {
+          Alert.alert('Sucesso', 'Professor desvinculado com sucesso.');
+        }
+      } catch (error) {
+        if (Platform.OS === 'web') {
+          window.alert('Falha ao desvincular o professor.');
+        } else {
+          Alert.alert('Erro', 'Falha ao desvincular o professor.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Tem certeza que deseja remover o vínculo com o professor ${professorInfo.professor.name}?`)) {
+        performUnenroll();
+      }
+    } else {
+      Alert.alert(
+        'Desvincular Professor',
+        `Tem certeza que deseja remover o vínculo com o professor ${professorInfo.professor.name}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Desvincular', 
+            style: 'destructive',
+            onPress: performUnenroll
+          }
+        ]
+      );
+    }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+        <AnimatedBackground variant="profile-pulse" iconName="account-circle" />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Meu Perfil</Text>
@@ -77,12 +118,22 @@ export default function ProfileScreen() {
                 </View>
               </View>
               
-              <Button 
-                title="Sair da Conta" 
-                variant="outline" 
-                onPress={handleLogout} 
-                style={styles.logoutButton}
-              />
+              <View style={styles.actionsContainer}>
+                <Button
+                  title="Informações / Editar Conta"
+                  onPress={() => router.push('/edit-profile')}
+                  variant="outline"
+                  style={styles.actionButton}
+                  icon={<MaterialCommunityIcons name="account-edit" size={20} color={Theme.colors.primary} style={{ marginRight: 8 }} />}
+                />
+                <Button 
+                  title="Sair da Conta" 
+                  variant="outline" 
+                  onPress={handleSignOut} 
+                  style={[styles.actionButton, styles.logoutButton]}
+                  textStyle={styles.logoutText}
+                />
+              </View>
             </Card>
           </MotiView>
 
@@ -94,18 +145,23 @@ export default function ProfileScreen() {
           >
             <Text style={styles.sectionTitle}>Vínculo com Professor</Text>
             
-            {professor ? (
+            {professorInfo ? (
               <Card glass style={styles.card}>
                 <View style={styles.profContainer}>
-                  <View style={[styles.avatarPlaceholder, { backgroundColor: Theme.colors.secondary }]}>
-                    <Text style={styles.avatarText}>{professor.professor.name.charAt(0).toUpperCase()}</Text>
+                  <View style={styles.profInfo}>
+                    <Ionicons name="person-circle-outline" size={40} color={Theme.colors.primary} />
+                    <View style={styles.profText}>
+                      <Text style={styles.profName}>{professorInfo.professor.name}</Text>
+                      <Text style={styles.profEmail}>{professorInfo.professor.email}</Text>
+                    </View>
                   </View>
-                  <Text style={styles.profName}>{professor.professor.name}</Text>
-                  <Text style={styles.profEmail}>{professor.professor.email}</Text>
-                  
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Vínculo Ativo</Text>
-                  </View>
+                  <Button 
+                    title="Desvincular Professor" 
+                    onPress={handleUnenroll} 
+                    variant="outline" 
+                    style={{ marginTop: 15, borderColor: Theme.colors.error }}
+                    textStyle={{ color: Theme.colors.error }}
+                  />
                 </View>
               </Card>
             ) : (
@@ -127,7 +183,7 @@ export default function ProfileScreen() {
                 <Button 
                   title="Vincular" 
                   onPress={handleJoin} 
-                  isLoading={isLoading}
+                  isLoading={joinMutation.isPending}
                 />
               </Card>
             )}

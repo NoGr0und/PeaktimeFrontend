@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../services/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 const DAYS_OF_WEEK = [
   { value: 'MONDAY', label: 'Segunda-feira' },
@@ -25,6 +26,7 @@ export default function PlanBuilderScreen() {
   const { studentId: paramStudentId, studentName: paramStudentName } = useLocalSearchParams<{ studentId: string; studentName: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const targetStudentId = paramStudentId || user?.id;
   const targetStudentName = paramStudentName || user?.name;
@@ -123,6 +125,9 @@ export default function PlanBuilderScreen() {
         name: planName,
         days: days
       });
+      
+      // Invalidate the dashboard query to show the new workout immediately
+      queryClient.invalidateQueries({ queryKey: ['weeklyDashboard'] });
       
       Alert.alert('Sucesso', 'Plano de treino criado com sucesso!');
       router.back();

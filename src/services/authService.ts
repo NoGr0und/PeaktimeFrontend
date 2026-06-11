@@ -36,5 +36,9 @@ export const authService = {
     if (!token) throw new Error("No token");
     
     return await api.get<User>('/auth/me');
+  },
+
+  async updateProfile(data: { name?: string; birthDate?: string; phone?: string; avatarUrl?: string }): Promise<User> {
+    return await api.put<User>('/auth/me', data);
   }
 };

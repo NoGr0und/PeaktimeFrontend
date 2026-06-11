@@ -9,6 +9,7 @@ import { Theme } from '../../constants/theme';
 import { useAuth } from '../../services/AuthContext';
 import { Role } from '../../types';
 import { MotiView } from 'moti';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -47,6 +48,7 @@ export default function RegisterScreen() {
         colors={[Theme.colors.background, Theme.colors.surface]}
         style={styles.container}
       >
+        <AnimatedBackground iconName="fitness" variant="blobs" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
@@ -57,66 +59,108 @@ export default function RegisterScreen() {
             <Card glass style={styles.card}>
               <Text style={styles.cardTitle}>Criar Conta</Text>
               
-              <View style={styles.roleSelector}>
-                <TouchableOpacity 
-                  style={[styles.roleOption, role === 'ALUNO' && styles.roleSelected]}
-                  onPress={() => setRole('ALUNO')}
-                >
-                  <Text style={[styles.roleText, role === 'ALUNO' && styles.roleTextSelected]}>Aluno</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.roleOption, role === 'PROFESSOR' && styles.roleSelected]}
-                  onPress={() => setRole('PROFESSOR')}
-                >
-                  <Text style={[styles.roleText, role === 'PROFESSOR' && styles.roleTextSelected]}>Professor</Text>
-                </TouchableOpacity>
-              </View>
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 400 }}
+              >
+                <View style={styles.roleSelector}>
+                  <TouchableOpacity 
+                    style={[styles.roleOption, role === 'ALUNO' && styles.roleSelected]}
+                    onPress={() => setRole('ALUNO')}
+                  >
+                    <Text style={[styles.roleText, role === 'ALUNO' && styles.roleTextSelected]}>Aluno</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.roleOption, role === 'PROFESSOR' && styles.roleSelected]}
+                    onPress={() => setRole('PROFESSOR')}
+                  >
+                    <Text style={[styles.roleText, role === 'PROFESSOR' && styles.roleTextSelected]}>Professor</Text>
+                  </TouchableOpacity>
+                </View>
+              </MotiView>
 
-              <Input
-                label="Nome Completo"
-                placeholder="Jane Doe"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 500 }}
+              >
+                <Input
+                  label="Nome Completo"
+                  placeholder="Jane Doe"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                />
+              </MotiView>
 
-              <Input
-                label="E-mail"
-                placeholder="seu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 600 }}
+              >
+                <Input
+                  label="E-mail"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </MotiView>
               
-              <Input
-                label="Senha"
-                placeholder="********"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 700 }}
+              >
+                <Input
+                  label="Senha"
+                  placeholder="********"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </MotiView>
 
-              <Input
-                label="Data de Nascimento"
-                placeholder="DD/MM/AAAA"
-                value={dob}
-                onChangeText={setDob}
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 800 }}
+              >
+                <Input
+                  label="Data de Nascimento"
+                  placeholder="DD/MM/AAAA"
+                  value={dob}
+                  onChangeText={setDob}
+                />
+              </MotiView>
               
-              <Button 
-                title="Cadastrar" 
-                onPress={handleRegister} 
-                isLoading={isLoading}
-                style={styles.button}
-              />
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', delay: 1000 }}
+              >
+                <Button 
+                  title="Cadastrar" 
+                  onPress={handleRegister} 
+                  isLoading={isLoading}
+                  style={styles.button}
+                />
+              </MotiView>
               
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Já tem uma conta? </Text>
-                <Link href="/(auth)/login" asChild>
-                  <Text style={styles.loginLink}>Faça Login</Text>
-                </Link>
-              </View>
+              <MotiView
+                from={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: 'timing', duration: 500, delay: 1200 }}
+              >
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>Já tem uma conta? </Text>
+                  <Link href="/(auth)/login" asChild>
+                    <Text style={styles.loginLink}>Faça Login</Text>
+                  </Link>
+                </View>
+              </MotiView>
             </Card>
           </MotiView>
         </ScrollView>

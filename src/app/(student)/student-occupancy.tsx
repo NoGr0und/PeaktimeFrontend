@@ -9,6 +9,7 @@ import { OccupancyLegend } from '../../components/ui/OccupancyLegend';
 import { Theme } from '../../constants/theme';
 import { OccupancyService } from '../../services/occupancyService';
 import { OccupancyReading } from '../../types/occupancy';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 // Tabela matemática de previsão fornecida
 const getForecastIncrement = (hour: number): number => {
@@ -126,6 +127,7 @@ setForecast({
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <AnimatedBackground variant="trending-up" />
       <ScrollView 
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Theme.colors.primary} />}

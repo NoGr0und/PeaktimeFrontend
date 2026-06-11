@@ -46,7 +46,7 @@ export interface ProfessorEnrollment {
 export const enrollmentService = {
   // Professor methods
   async generateInvite(): Promise<InviteCode> {
-    return await api.post<InviteCode>('/enrollment/invite');
+    return await api.post<InviteCode>('/enrollment/invite', {});
   },
 
   async getStudents(): Promise<StudentEnrollment[]> {
@@ -64,5 +64,9 @@ export const enrollmentService = {
     } catch (e) {
       return null;
     }
+  },
+
+  async unenroll(enrollmentId: string): Promise<{ success: boolean }> {
+    return await api.delete<{ success: boolean }>(`/enrollment/${enrollmentId}`);
   }
 };

@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../services/AuthContext';
 import { Theme } from '../constants/theme';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, LogBox } from 'react-native';
 import { notificationService } from '../services/notificationService';
 import { 
   useFonts,
@@ -12,6 +12,28 @@ import {
   Outfit_700Bold,
   Outfit_900Black
 } from '@expo-google-fonts/outfit';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+});
+
+LogBox.ignoreLogs([
+  'Invalid DOM property `transform-origin`',
+  'Did you mean `transformOrigin`?'
+]);
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,6 +80,7 @@ const RootLayoutNav = () => {
       <Stack.Screen name="(professor)" options={{ headerShown: false }} />
       <Stack.Screen name="create-workout" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="workout-history" options={{ presentation: 'modal', headerShown: false }} />
+      <Stack.Screen name="student-workouts" options={{ presentation: 'modal', headerShown: false }} />
     </Stack>
   );
 };
@@ -82,7 +105,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <PersistQueryClientProvider 
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
+        <RootLayoutNav />
+      </PersistQueryClientProvider>
     </AuthProvider>
   );
 }

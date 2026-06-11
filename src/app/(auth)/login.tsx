@@ -9,6 +9,7 @@ import { Theme } from '../../constants/theme';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../services/AuthContext';
 import { MotiView } from 'moti';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -43,6 +44,7 @@ export default function LoginScreen() {
         colors={[Theme.colors.background, Theme.colors.surface]}
         style={styles.container}
       >
+        <AnimatedBackground iconName="fitness" variant="blobs" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <MotiView
             from={{ opacity: 0, translateY: 50 }}
@@ -63,36 +65,60 @@ export default function LoginScreen() {
             <Card glass style={styles.card}>
               <Text style={styles.cardTitle}>Bem-vindo de volta</Text>
               
-              <Input
-                label="E-mail"
-                placeholder="seu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 600 }}
+              >
+                <Input
+                  label="E-mail"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </MotiView>
               
-              <Input
-                label="Senha"
-                placeholder="********"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+              <MotiView
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 800 }}
+              >
+                <Input
+                  label="Senha"
+                  placeholder="********"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </MotiView>
               
-              <Button 
-                title="Entrar" 
-                onPress={handleLogin} 
-                isLoading={isLoading}
-                style={styles.button}
-              />
+              <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', delay: 1000 }}
+              >
+                <Button 
+                  title="Entrar" 
+                  onPress={handleLogin} 
+                  isLoading={isLoading}
+                  style={styles.button}
+                />
+              </MotiView>
               
-              <View style={styles.registerContainer}>
-                <Text style={styles.registerText}>Ainda não tem conta? </Text>
-                <Link href="/(auth)/register" asChild>
-                  <Text style={styles.registerLink}>Cadastre-se</Text>
-                </Link>
-              </View>
+              <MotiView
+                from={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ type: 'timing', duration: 500, delay: 1200 }}
+              >
+                <View style={styles.registerContainer}>
+                  <Text style={styles.registerText}>Ainda não tem conta? </Text>
+                  <Link href="/(auth)/register" asChild>
+                    <Text style={styles.registerLink}>Cadastre-se</Text>
+                  </Link>
+                </View>
+              </MotiView>
             </Card>
           </MotiView>
         </ScrollView>

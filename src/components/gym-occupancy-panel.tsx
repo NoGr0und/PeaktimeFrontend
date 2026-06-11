@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { api } from '../services/api';
 
 const getForecastIncrement = (hour: number): number => {
   if (hour >= 0 && hour <= 15) return 3;
@@ -25,14 +26,9 @@ type OccupancyReading = {
 export default function GymOccupancyPanel() {
   const [historyData, setHistoryData] = useState<OccupancyReading[]>([]);
 
-  // Mantém o IP do emulador que configurámos para o teu ambiente
-  const API_URL = 'http://10.0.2.2:3333'; 
-
   const fetchOccupancy = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/occupancy/history`);
-      const data = await response.json();
-      
+      const data = await api.get<{ readings: OccupancyReading[] }>('/occupancy/history');
       if (data && Array.isArray(data.readings)) {
         setHistoryData(data.readings);
       }
@@ -83,11 +79,7 @@ export default function GymOccupancyPanel() {
 
   const handleManualUpdate = async (changeValue: number) => {
     try {
-      await fetch(`${API_URL}/api/occupancy/hardware`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change: changeValue })
-      });
+      await api.post('/occupancy/hardware', { change: changeValue });
       fetchOccupancy(); 
     } catch (error) {
       console.error("Erro ao atualizar ocupação:", error);

@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../../constants/theme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { FoodSearch } from '../../components/ui/FoodSearch';
-import { nutritionService, MealLog, MealType } from '../../services/nutritionService';
-import { MotiView } from 'moti';
+import { nutritionService, MealLog, MealType, CreateMealRequest, FoodItem } from '../../services/nutritionService';
 import { SymbolView } from 'expo-symbols';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import { Skeleton } from 'moti/skeleton';
+import { Swipeable } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
+import { MotiView } from 'moti';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 
 const MEAL_LABELS: Record<MealType, string> = {
@@ -18,53 +24,90 @@ const MEAL_LABELS: Record<MealType, string> = {
 };
 
 export default function NutritionScreen() {
-  const [meals, setMeals] = useState<MealLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showSearch, setShowSearch] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const isToday = selectedDateStr === new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
-    loadMeals();
-  }, []);
-
-  const loadMeals = async () => {
-    try {
-      setIsLoading(true);
-      const today = new Date().toISOString().split('T')[0];
-      const data = await nutritionService.getDailyMeals(today);
-      setMeals(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+  const formatDate = (date: Date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toISOString().split('T')[0] === today.toISOString().split('T')[0]) return 'Hoje';
+    if (date.toISOString().split('T')[0] === yesterday.toISOString().split('T')[0]) return 'Ontem';
+    
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
   };
 
-  const handleAddMeal = async (foodId: string, mealType: MealType, quantity: number) => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      await nutritionService.logMeal({
-        foodId,
-        mealType,
-        quantity,
-        date: today
-      });
-      await loadMeals();
-    } catch (error) {
+  const changeDate = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
+  const { data: meals = [], isLoading } = useQuery({
+    queryKey: ['dailyMeals', selectedDateStr],
+    queryFn: () => nutritionService.getDailyMeals(selectedDateStr),
+  });
+
+  const addMealMutation = useMutation({
+    mutationFn: (data: CreateMealRequest) => nutritionService.logMeal(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dailyMeals', selectedDateStr] });
+    },
+    onError: () => {
       Alert.alert('Erro', 'Não foi possível registrar a refeição.');
-      throw error;
     }
-  };
+  });
 
-  const handleDelete = async (id: string) => {
-    try {
-      await nutritionService.deleteMeal(id);
-      setMeals(meals.filter(m => m.id !== id));
-    } catch (error) {
+  const deleteMealMutation = useMutation({
+    mutationFn: (id: string) => nutritionService.deleteMeal(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<MealLog[]>(['dailyMeals', selectedDateStr], (oldData) => {
+        if (!oldData) return [];
+        return oldData.filter(m => m.id !== deletedId);
+      });
+    },
+    onError: () => {
       Alert.alert('Erro', 'Não foi possível remover a refeição.');
     }
+  });
+
+  const handleAddMeal = async (food: FoodItem, mealType: MealType, quantity: number) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    addMealMutation.mutate({
+      type: mealType,
+      date: selectedDate.toISOString(),
+      items: [{
+        name: food.name,
+        quantity: quantity,
+        unit: '100g',
+        calories: food.caloriesPer100g * quantity,
+        protein: food.proteinPer100g * quantity,
+        carbs: food.carbsPer100g * quantity,
+        fat: food.fatPer100g * quantity,
+      }]
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMealMutation.mutate(id);
   };
 
   const confirmDelete = (id: string, name: string) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Deseja realmente remover ${name}?`)) {
+        handleDelete(id);
+      }
+      return;
+    }
+
     Alert.alert(
       'Remover refeição',
       `Deseja realmente remover ${name}?`,
@@ -78,10 +121,12 @@ export default function NutritionScreen() {
   // Calculate totals
   const totals = meals.reduce(
     (acc, meal) => {
-      acc.calories += meal.food.calories * meal.quantity;
-      acc.protein += meal.food.protein * meal.quantity;
-      acc.carbs += meal.food.carbs * meal.quantity;
-      acc.fat += meal.food.fat * meal.quantity;
+      meal.items?.forEach(item => {
+        acc.calories += item.calories;
+        acc.protein += item.protein;
+        acc.carbs += item.carbs;
+        acc.fat += item.fat;
+      });
       return acc;
     },
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -89,8 +134,8 @@ export default function NutritionScreen() {
 
   // Group meals by type
   const mealsByType = meals.reduce((acc, meal) => {
-    if (!acc[meal.mealType]) acc[meal.mealType] = [];
-    acc[meal.mealType].push(meal);
+    if (!acc[meal.type]) acc[meal.type] = [];
+    acc[meal.type].push(meal);
     return acc;
   }, {} as Record<MealType, MealLog[]>);
 
@@ -98,7 +143,7 @@ export default function NutritionScreen() {
     const percentage = Math.min((current / goal) * 100, 100);
     return (
       <View style={styles.macroContainer}>
-        {/* <AnimatedCircularProgress
+        <AnimatedCircularProgress
           size={50}
           width={4}
           fill={percentage}
@@ -107,10 +152,9 @@ export default function NutritionScreen() {
           rotation={0}
         >
           {() => (
-            <Text style={styles.macroValue}>{Math.round(current)}g</Text>
+            <Text style={styles.macroValue}>{Math.round(current)}</Text>
           )}
-        </AnimatedCircularProgress> */}
-        <Text style={styles.macroValue}>{Math.round(current)}g</Text>
+        </AnimatedCircularProgress>
         <Text style={styles.macroLabel}>{label}</Text>
       </View>
     );
@@ -118,11 +162,20 @@ export default function NutritionScreen() {
 
   return (
     <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+      <AnimatedBackground iconName="food-apple" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         <View style={styles.header}>
           <Text style={styles.title}>Diário de Nutrição</Text>
-          <Text style={styles.subtitle}>Hoje</Text>
+          <View style={styles.dateNavigator}>
+            <TouchableOpacity onPress={() => changeDate(-1)} style={styles.dateNavBtn}>
+              <Text style={{ fontSize: 24, color: Theme.colors.primary, fontFamily: Theme.typography.fonts.bold }}>{'<'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.subtitle}>{formatDate(selectedDate)}</Text>
+            <TouchableOpacity onPress={() => changeDate(1)} disabled={isToday} style={[styles.dateNavBtn, isToday && { opacity: 0.3 }]}>
+              <Text style={{ fontSize: 24, color: Theme.colors.primary, fontFamily: Theme.typography.fonts.bold }}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <MotiView
@@ -154,7 +207,13 @@ export default function NutritionScreen() {
         />
 
         {isLoading ? (
-          <ActivityIndicator color={Theme.colors.primary} style={{ marginTop: 40 }} />
+          <View style={{ marginTop: 20 }}>
+            <Skeleton colorMode="dark" width="100%" height={70} radius={8} />
+            <View style={{ height: 16 }} />
+            <Skeleton colorMode="dark" width="100%" height={70} radius={8} />
+            <View style={{ height: 16 }} />
+            <Skeleton colorMode="dark" width="100%" height={70} radius={8} />
+          </View>
         ) : (
           (Object.keys(MEAL_LABELS) as MealType[]).map((type, index) => {
             const typeMeals = mealsByType[type] || [];
@@ -162,29 +221,40 @@ export default function NutritionScreen() {
             if (typeMeals.length === 0) return null;
 
             return (
-              <MotiView
+              <View
                 key={type}
-                from={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', delay: index * 100 }}
                 style={styles.mealSection}
               >
                 <Text style={styles.mealSectionTitle}>{MEAL_LABELS[type]}</Text>
                 
                 {typeMeals.map((meal) => (
-                  <View key={meal.id} style={styles.mealItem}>
-                    <View style={styles.mealInfo}>
-                      <Text style={styles.mealName}>{meal.food.name}</Text>
-                      <Text style={styles.mealDetails}>
-                        {meal.quantity}x {meal.food.portion} • {Math.round(meal.food.calories * meal.quantity)} kcal
-                      </Text>
+                  <Swipeable
+                    key={meal.id}
+                    renderRightActions={() => (
+                      <TouchableOpacity 
+                        style={styles.deleteSwipe}
+                        onPress={() => {
+                          if (Platform.OS !== 'web') {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                          }
+                          confirmDelete(meal.id, meal.items?.[0]?.name || 'Refeição');
+                        }}
+                      >
+                        <Text style={{ fontSize: 20 }}>🗑️</Text>
+                      </TouchableOpacity>
+                    )}
+                  >
+                    <View style={styles.mealItem}>
+                      <View style={styles.mealInfo}>
+                        <Text style={styles.mealName}>{meal.items?.map(i => i.name).join(', ')}</Text>
+                        <Text style={styles.mealDetails}>
+                          {Math.round(meal.items?.reduce((sum, i) => sum + i.calories, 0) || 0)} kcal
+                        </Text>
+                      </View>
                     </View>
-                    <TouchableOpacity onPress={() => confirmDelete(meal.id, meal.food.name)}>
-                      <SymbolView name="trash" size={20} tintColor={Theme.colors.error} />
-                    </TouchableOpacity>
-                  </View>
+                  </Swipeable>
                 ))}
-              </MotiView>
+              </View>
             );
           })
         )}
@@ -222,6 +292,15 @@ const styles = StyleSheet.create({
     fontFamily: Theme.typography.fonts.medium,
     fontSize: Theme.typography.sizes.md,
     color: Theme.colors.primary,
+    marginHorizontal: Theme.spacing.md,
+  },
+  dateNavigator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Theme.spacing.xs,
+  },
+  dateNavBtn: {
+    padding: 4,
   },
   summaryCard: {
     padding: Theme.spacing.lg,
@@ -288,6 +367,15 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.md,
     borderRadius: Theme.borderRadius.sm,
     marginBottom: 8,
+  },
+  deleteSwipe: {
+    backgroundColor: Theme.colors.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderRadius: Theme.borderRadius.sm,
+    marginBottom: 8,
+    marginLeft: 8,
   },
   mealInfo: {
     flex: 1,

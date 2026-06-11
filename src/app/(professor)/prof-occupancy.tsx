@@ -7,6 +7,7 @@ import { ForecastChart } from '../../components/ui/ForecastChart';
 import { OccupancyCard } from '../../components/ui/OccupancyCard';
 import { OccupancyChart } from '../../components/ui/OccupancyChart';
 import { OccupancyLegend } from '../../components/ui/OccupancyLegend';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 import { Theme } from '../../constants/theme';
 import { OccupancyService } from '../../services/occupancyService';
 import { OccupancyReading } from '../../types/occupancy';
@@ -126,6 +127,7 @@ setForecast({
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <AnimatedBackground variant="trending-up" />
       <ScrollView 
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Theme.colors.primary} />}

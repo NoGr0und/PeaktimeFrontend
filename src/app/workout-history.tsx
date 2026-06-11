@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../constants/theme';
@@ -7,21 +7,18 @@ import { workoutService, WorkoutHistoryItem } from '../services/workoutService';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView, AnimatePresence } from 'moti';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart } from 'react-native-gifted-charts';
+import { AnimatedBackground } from '../components/layout/AnimatedBackground';
 
 export default function WorkoutHistoryScreen() {
   const router = useRouter();
-  const [history, setHistory] = useState<WorkoutHistoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadHistory() {
-      const data = await workoutService.getWorkoutHistory();
-      setHistory(data);
-      setIsLoading(false);
-    }
-    loadHistory();
-  }, []);
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ['workoutHistory'],
+    queryFn: () => workoutService.getWorkoutHistory(),
+  });
 
   const toggleExpand = (id: string) => {
     if (expandedId === id) {
@@ -41,8 +38,55 @@ export default function WorkoutHistoryScreen() {
     }).format(date);
   };
 
+  // Prepare chart data: Count workouts per day for the current week
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+  const monday = new Date(new Date().setDate(diffToMonday));
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const weeklyData = [
+    { label: 'Seg', value: 0 },
+    { label: 'Ter', value: 0 },
+    { label: 'Qua', value: 0 },
+    { label: 'Qui', value: 0 },
+    { label: 'Sex', value: 0 },
+    { label: 'Sáb', value: 0 },
+    { label: 'Dom', value: 0 },
+  ];
+
+  history.forEach(item => {
+    const itemDate = new Date(item.date);
+    if (itemDate >= monday && itemDate <= sunday) {
+      let dIndex = itemDate.getDay();
+      let mappedIndex = dIndex === 0 ? 6 : dIndex - 1;
+      weeklyData[mappedIndex].value += 1; // Count number of workouts
+    }
+  });
+
+  const chartData = weeklyData.map(item => ({
+    ...item,
+    frontColor: Theme.colors.primary,
+    gradientColor: '#7fffaa',
+    topLabelComponent: () => (
+      <Text style={{color: Theme.colors.text, fontSize: 12, fontWeight: 'bold', marginBottom: 6}}>
+        {item.value > 0 ? item.value : ''}
+      </Text>
+    ),
+  }));
+
+  // Calculate dynamic max value for the chart
+  const maxWorkouts = Math.max(...chartData.map(d => d.value), 3);
+  const chartMaxValue = maxWorkouts + 1;
+
   return (
     <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+      <AnimatedBackground iconName="history" />
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="close" size={28} color={Theme.colors.text} />
@@ -62,7 +106,36 @@ export default function WorkoutHistoryScreen() {
             <Text style={styles.emptyText}>Você ainda não finalizou nenhum treino. Comece hoje mesmo para construir seu histórico!</Text>
           </Card>
         ) : (
-          history.map((item, index) => {
+          <View>
+            <MotiView from={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 100 }}>
+              <Card glass style={styles.chartCard}>
+                <Text style={styles.chartTitle}>Treinos Concluídos (Esta Semana)</Text>
+                <View style={styles.chartContainer}>
+                  <BarChart
+                    data={chartData.length > 0 ? chartData : [{value: 0, label: 'N/A'}]}
+                    barWidth={26}
+                    spacing={30}
+                    roundedTop
+                    hideRules={false}
+                    rulesType="dashed"
+                    rulesColor="rgba(255,255,255,0.05)"
+                    xAxisThickness={1}
+                    xAxisColor="rgba(255,255,255,0.1)"
+                    yAxisThickness={0}
+                    yAxisTextStyle={{color: Theme.colors.textSecondary, fontSize: 11, fontWeight: '600'}}
+                    xAxisLabelTextStyle={{color: Theme.colors.textSecondary, fontSize: 11, fontWeight: '600'}}
+                    noOfSections={4}
+                    maxValue={chartMaxValue}
+                    width={280}
+                    height={160}
+                    initialSpacing={15}
+                    showGradient
+                  />
+                </View>
+              </Card>
+            </MotiView>
+            <View style={{ height: 16 }} />
+            {history.map((item, index) => {
             const isExpanded = expandedId === item.id;
             return (
               <MotiView
@@ -123,7 +196,8 @@ export default function WorkoutHistoryScreen() {
                 </Card>
               </MotiView>
             );
-          })
+          })}
+          </View>
         )}
       </ScrollView>
     </LinearGradient>
@@ -252,5 +326,20 @@ const styles = StyleSheet.create({
     fontFamily: Theme.typography.fonts.regular,
     fontSize: Theme.typography.sizes.xs,
     color: Theme.colors.textSecondary,
+  },
+  chartCard: {
+    padding: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+  },
+  chartTitle: {
+    fontFamily: Theme.typography.fonts.bold,
+    fontSize: Theme.typography.sizes.md,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.lg,
+  },
+  chartContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -10, // Adjust GiftedCharts default offset
   }
 });

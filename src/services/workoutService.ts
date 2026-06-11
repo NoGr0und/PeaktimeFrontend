@@ -66,12 +66,12 @@ export const workoutService = {
     }
   },
 
-  async getWeeklyDashboard(): Promise<WeeklyDashboardResponse | null> {
-    try {
-      return await api.get<WeeklyDashboardResponse>('/workouts/weekly');
-    } catch (e) {
-      return null;
-    }
+  async getWeeklyDashboard(): Promise<WeeklyDashboardResponse> {
+    return await api.get<WeeklyDashboardResponse>('/workouts/weekly');
+  },
+
+  async getStudentDashboard(studentId: string): Promise<WeeklyDashboardResponse> {
+    return await api.get<WeeklyDashboardResponse>(`/workouts/student/${studentId}/dashboard`);
   },
 
   async getWorkoutHistory(): Promise<WorkoutHistoryItem[]> {

@@ -8,6 +8,7 @@ interface AuthContextData {
   isLoading: boolean;
   signIn: (user: User) => void;
   signOut: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -44,8 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const updateUser = (userData: User) => {
+    setUser(userData);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signIn, signOut, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

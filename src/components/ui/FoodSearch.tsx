@@ -8,7 +8,7 @@ import { nutritionService, FoodItem, MealType } from '../../services/nutritionSe
 import { SymbolView } from 'expo-symbols';
 
 interface FoodSearchProps {
-  onAddMeal: (foodId: string, mealType: MealType, quantity: number) => Promise<void>;
+  onAddMeal: (food: FoodItem, mealType: MealType, quantity: number) => Promise<void>;
   onClose: () => void;
 }
 
@@ -59,7 +59,7 @@ export const FoodSearch = ({ onAddMeal, onClose }: FoodSearchProps) => {
     
     try {
       setIsAdding(true);
-      await onAddMeal(selectedFood.id, mealType, parseFloat(quantity) || 1);
+      await onAddMeal(selectedFood, mealType, parseFloat(quantity) || 1);
       onClose();
     } catch (error) {
       console.error(error);
@@ -80,24 +80,24 @@ export const FoodSearch = ({ onAddMeal, onClose }: FoodSearchProps) => {
 
         <Card glass style={styles.selectedCard}>
           <Text style={styles.foodName}>{selectedFood.name}</Text>
-          <Text style={styles.foodPortion}>Porção: {selectedFood.portion}</Text>
+          <Text style={styles.foodPortion}>Porção: 100g</Text>
           
           <View style={styles.macrosRow}>
             <View style={styles.macro}>
               <Text style={styles.macroLabel}>CAL</Text>
-              <Text style={[styles.macroValue, { color: Theme.colors.primary }]}>{selectedFood.calories}</Text>
+              <Text style={[styles.macroValue, { color: Theme.colors.primary }]}>{selectedFood.caloriesPer100g}</Text>
             </View>
             <View style={styles.macro}>
               <Text style={styles.macroLabel}>PROT</Text>
-              <Text style={[styles.macroValue, { color: Theme.colors.secondary }]}>{selectedFood.protein}g</Text>
+              <Text style={[styles.macroValue, { color: Theme.colors.secondary }]}>{selectedFood.proteinPer100g}g</Text>
             </View>
             <View style={styles.macro}>
               <Text style={styles.macroLabel}>CARB</Text>
-              <Text style={[styles.macroValue, { color: Theme.colors.success }]}>{selectedFood.carbs}g</Text>
+              <Text style={[styles.macroValue, { color: Theme.colors.success }]}>{selectedFood.carbsPer100g}g</Text>
             </View>
             <View style={styles.macro}>
               <Text style={styles.macroLabel}>GORD</Text>
-              <Text style={[styles.macroValue, { color: Theme.colors.accent }]}>{selectedFood.fat}g</Text>
+              <Text style={[styles.macroValue, { color: Theme.colors.accent }]}>{selectedFood.fatPer100g}g</Text>
             </View>
           </View>
         </Card>
@@ -153,13 +153,13 @@ export const FoodSearch = ({ onAddMeal, onClose }: FoodSearchProps) => {
       ) : (
         <FlatList
           data={results}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.name + index}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.resultItem} onPress={() => setSelectedFood(item)}>
               <View>
                 <Text style={styles.resultName}>{item.name}</Text>
-                <Text style={styles.resultDetails}>{item.portion} • {item.calories} kcal</Text>
+                <Text style={styles.resultDetails}>100g • {item.caloriesPer100g} kcal</Text>
               </View>
               <SymbolView name="plus.circle.fill" size={24} tintColor={Theme.colors.primary} />
             </TouchableOpacity>

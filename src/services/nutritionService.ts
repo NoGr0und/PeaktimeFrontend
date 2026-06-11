@@ -1,32 +1,46 @@
 import { api } from './api';
 
 export interface FoodItem {
+  name: string;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+}
+
+export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
+
+export interface MealItemLog {
   id: string;
   name: string;
-  portion: string;
+  quantity: number;
+  unit: string;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
 }
 
-export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
-
 export interface MealLog {
   id: string;
   studentId: string;
-  foodId: string;
-  mealType: MealType;
-  quantity: number;
+  type: MealType;
   date: string;
-  food: FoodItem;
+  items: MealItemLog[];
 }
 
 export interface CreateMealRequest {
-  foodId: string;
-  mealType: MealType;
-  quantity: number;
+  type: MealType;
   date: string; // ISO date format YYYY-MM-DD
+  items: {
+    name: string;
+    quantity: number;
+    unit: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }[];
 }
 
 export const nutritionService = {

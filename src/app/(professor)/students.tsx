@@ -1,29 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card } from '../../components/ui/Card';
 import { Theme } from '../../constants/theme';
 import { enrollmentService, StudentEnrollment } from '../../services/enrollmentService';
 import { MotiView } from 'moti';
 import { useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function StudentsScreen() {
-  const [students, setStudents] = useState<StudentEnrollment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadStudents();
-  }, []);
+  const { data: students = [], isLoading } = useQuery({
+    queryKey: ['studentsList'],
+    queryFn: () => enrollmentService.getStudents(),
+  });
 
-  const loadStudents = async () => {
-    try {
-      const data = await enrollmentService.getStudents();
-      setStudents(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error(error);
-      setIsLoading(false);
+  const handleRemoveStudent = (enrollmentId: string) => {
+    const performRemove = async () => {
+      try {
+        await enrollmentService.unenroll(enrollmentId);
+        queryClient.invalidateQueries({ queryKey: ['studentsList'] });
+        if (Platform.OS === 'web') {
+          window.alert('Aluno removido com sucesso.');
+        } else {
+          Alert.alert('Sucesso', 'Aluno removido com sucesso.');
+        }
+      } catch (error) {
+        if (Platform.OS === 'web') {
+          window.alert('Falha ao remover aluno.');
+        } else {
+          Alert.alert('Erro', 'Falha ao remover aluno.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Tem certeza que deseja remover este aluno da sua lista?')) {
+        performRemove();
+      }
+    } else {
+      Alert.alert(
+        'Remover Aluno',
+        'Tem certeza que deseja remover este aluno da sua lista de alunos?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Remover',
+            style: 'destructive',
+            onPress: performRemove
+          }
+        ]
+      );
     }
   };
 
@@ -47,13 +78,30 @@ export default function StudentsScreen() {
         <View style={styles.actionRow}>
           <TouchableOpacity 
             style={styles.actionBtn}
-            onPress={() => router.push({
-              pathname: '/create-workout',
-              params: { studentId: item.student.id, studentName: item.student.name }
-            })}
+            onPress={() => handleRemoveStudent(item.id)}
           >
-            <Text style={styles.actionBtnText}>Criar Novo Treino</Text>
+            <Text style={[styles.actionBtnText, { color: Theme.colors.error }]}>Remover</Text>
           </TouchableOpacity>
+          <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { marginLeft: 10 }]}
+              onPress={() => router.push({
+                pathname: '/student-workouts',
+                params: { studentId: item.student.id, studentName: item.student.name }
+              })}
+            >
+              <Text style={styles.actionBtnText}>Ver Treinos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.actionBtn, { marginLeft: 10 }]}
+              onPress={() => router.push({
+                pathname: '/create-workout',
+                params: { studentId: item.student.id, studentName: item.student.name }
+              })}
+            >
+              <Text style={styles.actionBtnText}>Criar Treino</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Card>
     </MotiView>
@@ -61,9 +109,18 @@ export default function StudentsScreen() {
 
   return (
     <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+      <AnimatedBackground iconName="clipboard-list" />
       <View style={styles.header}>
-        <Text style={styles.title}>Meus Alunos</Text>
-        <Text style={styles.subtitle}>Gerencie os treinos dos seus alunos vinculados.</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Meus Alunos</Text>
+          <Text style={styles.subtitle}>Gerencie os treinos dos seus alunos vinculados.</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.addBtn}
+          onPress={() => router.push('/(professor)/invite')}
+        >
+          <MaterialCommunityIcons name="plus" size={24} color={Theme.colors.background} />
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -96,6 +153,18 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Theme.spacing.lg,
     marginBottom: Theme.spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
   },
   title: {
     fontFamily: Theme.typography.fonts.black,
@@ -154,7 +223,9 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
     paddingTop: Theme.spacing.sm,
     marginTop: Theme.spacing.xs,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   actionBtn: {
     backgroundColor: 'rgba(100, 255, 218, 0.1)',

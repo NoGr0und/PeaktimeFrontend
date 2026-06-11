@@ -24,12 +24,14 @@ export const api = {
     const token = await storage.getItemAsync('access_token');
     
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
-      // 2. Proteção para evitar o bloqueio do Localtunnel (se voltares a usar)
       'Bypass-Tunnel-Reminder': 'true', 
       ...((options.headers as Record<string, string>) || {}),
     };
+
+    if (options.method && !['GET', 'DELETE'].includes(options.method.toUpperCase())) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
       headers.Authorization = `Bearer ${token}`;

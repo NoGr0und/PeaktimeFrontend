@@ -26,7 +26,7 @@ export default function ProfessorLayout() {
         }}
       />
       <Tabs.Screen
-        name="occupancy"
+        name="prof-occupancy"
         options={{
           title: 'Ocupação',
           tabBarIcon: ({ color, focused }) => (
@@ -35,7 +35,7 @@ export default function ProfessorLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="prof-profile"
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, focused }) => (

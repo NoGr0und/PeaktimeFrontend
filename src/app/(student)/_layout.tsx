@@ -1,34 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { TabBar } from '../../components/layout/TabBar';
-import { enrollmentService } from '../../services/enrollmentService';
-import { View, ActivityIndicator } from 'react-native';
 import { Theme } from '../../constants/theme';
 
 export default function StudentLayout() {
-  const [isChecking, setIsChecking] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    async function checkEnrollment() {
-      const prof = await enrollmentService.getProfessor();
-      if (!prof) {
-        router.replace('/(student)/join');
-      }
-      setIsChecking(false);
-    }
-    
-    checkEnrollment();
-  }, []);
-
-  if (isChecking) {
-    return (
-      <View style={{ flex: 1, backgroundColor: Theme.colors.background, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator color={Theme.colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen
@@ -46,7 +21,7 @@ export default function StudentLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="student-profile"
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, focused }) => (
@@ -55,7 +30,7 @@ export default function StudentLayout() {
         }}
       />
       <Tabs.Screen
-        name="occupancy"
+        name="student-occupancy"
         options={{
           title: 'Ocupação',
           tabBarIcon: ({ color, focused }) => (

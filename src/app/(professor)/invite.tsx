@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Theme } from '../../constants/theme';
 import { enrollmentService, InviteCode } from '../../services/enrollmentService';
 import { MotiView } from 'moti';
+import { AnimatedBackground } from '../../components/layout/AnimatedBackground';
 
 export default function InviteScreen() {
   const [invite, setInvite] = useState<InviteCode | null>(null);
@@ -25,6 +26,7 @@ export default function InviteScreen() {
 
   return (
     <LinearGradient colors={[Theme.colors.background, Theme.colors.surface]} style={styles.container}>
+      <AnimatedBackground iconName="ticket-account" />
       <View style={styles.header}>
         <Text style={styles.title}>Convites</Text>
         <Text style={styles.subtitle}>Gere códigos para seus alunos se vincularem a você.</Text>
