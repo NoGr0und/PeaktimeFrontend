@@ -20,12 +20,6 @@ export default function ProfessorLayout() {
         }}
       />
       <Tabs.Screen
-        name="plan-builder"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="prof-occupancy"
         options={{
           title: 'Ocupação',

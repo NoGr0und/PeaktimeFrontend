@@ -44,7 +44,7 @@ export default function LoginScreen() {
         colors={[Theme.colors.background, Theme.colors.surface]}
         style={styles.container}
       >
-        <AnimatedBackground iconName="fitness" variant="blobs" />
+        <AnimatedBackground iconName="dumbbell" variant="blobs" />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <MotiView
             from={{ opacity: 0, translateY: 50 }}

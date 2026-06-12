@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '../services/AuthContext';
 import { Theme } from '../constants/theme';
 import { View, ActivityIndicator, LogBox } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { notificationService } from '../services/notificationService';
 import { 
   useFonts,
@@ -104,13 +105,15 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <PersistQueryClientProvider 
-        client={queryClient}
-        persistOptions={{ persister: asyncStoragePersister }}
-      >
-        <RootLayoutNav />
-      </PersistQueryClientProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <PersistQueryClientProvider 
+          client={queryClient}
+          persistOptions={{ persister: asyncStoragePersister }}
+        >
+          <RootLayoutNav />
+        </PersistQueryClientProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
