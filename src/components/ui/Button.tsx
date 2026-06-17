@@ -1,6 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { Theme } from '../../constants/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
@@ -12,9 +11,9 @@ interface ButtonProps extends TouchableOpacityProps {
 export const Button = ({ title, variant = 'primary', isLoading, style, accessibilityLabel, ...props }: ButtonProps) => {
   if (variant === 'primary') {
     return (
-      <TouchableOpacity 
-        activeOpacity={0.8} 
-        style={[styles.container, style]} 
+      <TouchableOpacity
+        activeOpacity={0.8}
+        style={[styles.container, style]}
         disabled={isLoading || props.disabled}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel || title}
@@ -38,14 +37,14 @@ export const Button = ({ title, variant = 'primary', isLoading, style, accessibi
   }
 
   return (
-    <TouchableOpacity 
-      activeOpacity={0.8} 
+    <TouchableOpacity
+      activeOpacity={0.8}
       style={[
-        styles.container, 
+        styles.container,
         styles.secondaryContainer,
         variant === 'outline' && styles.outlineContainer,
         style
-      ]} 
+      ]}
       disabled={isLoading || props.disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
