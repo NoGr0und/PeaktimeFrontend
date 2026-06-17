@@ -197,6 +197,17 @@ O aplicativo adota hooks customizados para desacoplar a lógica de estado das te
 
 ---
 
+## 📟 Integração Hardware (Arduino Uno)
+
+O Peaktime suporta uma integração IoT via WebSocket / Server-Sent Events (SSE) com o microcontrolador **Arduino Uno**, simulando o controle de fluxo de uma catraca física de acesso.
+
+### Lógica de Contabilidade do Fluxo
+A comunicação estabelecida entre o hardware e o ecossistema web atualiza em tempo real o contador de presença baseado nas seguintes diretrizes:
+- **Sinal de Entrada (`+1`)**: Disparado quando a catraca detecta uma rotação de entrada bem-sucedida, incrementando instantaneamente em `+1` o contador global no dashboard.
+- **Sinal de Saída (`-1`)**: Disparado quando a catraca detecta uma rotação de saída ou fluxo reverso, decrementando em `-1` o contador de usuários ativos no ambiente.
+
+---
+
 ## 🛠️ Executando o Projeto
 
 Instale as dependências:
